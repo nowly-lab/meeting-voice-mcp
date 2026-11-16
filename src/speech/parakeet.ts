@@ -8,8 +8,8 @@ import type { SpeechCallbacks, SpeechEngine } from "./types.ts";
 type WorkerLike = { on(event: "message" | "error" | "exit", fn: (m: never) => void): void; postMessage(m: unknown, transfer?: ArrayBuffer[]): void; terminate(): Promise<number> };
 const workerFile = new URL(`./parakeet-worker${extname(fileURLToPath(import.meta.url))}`, import.meta.url);
 
-export function createParakeet(modelDir: string, cb: SpeechCallbacks, opts: { spawnWorker?: () => WorkerLike } = {}): SpeechEngine {
-  const worker = opts.spawnWorker ? opts.spawnWorker() : (new Worker(workerFile, { workerData: { modelDir } }) as unknown as WorkerLike);
+export function createParakeet(modelDir: string, cb: SpeechCallbacks, opts: { spawnWorker?: () => WorkerLike; vadOnly?: boolean } = {}): SpeechEngine {
+  const worker = opts.spawnWorker ? opts.spawnWorker() : (new Worker(workerFile, { workerData: { modelDir, vadOnly: opts.vadOnly === true } }) as unknown as WorkerLike);
   let finished: (() => void) | null = null;
   let stopped = false;
   worker.on("message", (m: { type: string; side: Side; active: boolean; atMs: number; text: string; startMs: number; endMs: number; message: string }) => {

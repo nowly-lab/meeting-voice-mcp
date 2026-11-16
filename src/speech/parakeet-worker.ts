@@ -11,8 +11,11 @@ type Sherpa = {
   Vad: new (c: object, bufferSeconds: number) => VadLike;
 };
 
-export function createRecognizer(modelDir: string) {
+export function createRecognizer(modelDir: string, vadOnly = false) {
   const sherpa = createRequire(import.meta.url)("sherpa-onnx-node") as Sherpa;
+  const newVad = () => new sherpa.Vad({ sileroVad: { model: join(modelDir, "silero_vad.onnx"), ...VAD_SETTINGS }, sampleRate: SAMPLE_RATE, numThreads: 1, debug: false }, 60);
+  // Gemini mode: only voice start/end is needed, so no recognizer (and no 650 MB model) is loaded.
+  if (vadOnly) return { recognize: () => "", newVad };
   const recognizer = new sherpa.OfflineRecognizer({
     featConfig: { sampleRate: SAMPLE_RATE, featureDim: 80 },
     modelConfig: { nemoCtc: { model: join(modelDir, "model.int8.onnx") }, tokens: join(modelDir, "tokens.txt"), numThreads: 2, provider: "cpu", debug: 0 },
@@ -23,14 +26,13 @@ export function createRecognizer(modelDir: string) {
     recognizer.decode(stream);
     return recognizer.getResult(stream).text;
   };
-  const newVad = () => new sherpa.Vad({ sileroVad: { model: join(modelDir, "silero_vad.onnx"), ...VAD_SETTINGS }, sampleRate: SAMPLE_RATE, numThreads: 1, debug: false }, 60);
   return { recognize, newVad };
 }
 
 if (parentPort && workerData?.modelDir) {
   const port = parentPort;
   try {
-    const { recognize, newVad } = createRecognizer(workerData.modelDir as string);
+    const { recognize, newVad } = createRecognizer(workerData.modelDir as string, workerData.vadOnly === true);
     const sides = { mic: createSideProcessor({ vad: newVad(), recognize }), system: createSideProcessor({ vad: newVad(), recognize }) };
     const send = (side: "mic" | "system", r: ReturnType<typeof sides.mic.accept>) => {
       for (const v of r.voice) port.postMessage({ type: "voice", side, ...v });
