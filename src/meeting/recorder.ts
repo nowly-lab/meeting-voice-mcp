@@ -41,6 +41,9 @@ export type StartInput = {
 };
 
 const FORCE_MS = 60_000;
+const BYTES_PER_MS = 32; // 16 kHz, 16-bit mono
+const IDLE_FEED_AFTER_MS = 300; // a side silent this long (no PCM at all) is fed silence
+const MAX_PAD_MS = 30 * 60_000;
 const GEMINI_WAIT_MS = 5_000;
 
 function rms(pcm: Buffer) {
@@ -69,6 +72,9 @@ type Active = {
   sources: Record<Side, SourceState>;
   levels: Record<Side, number>;
   error: string | null;
+  /** Capture time (ms since capture started) up to which each side's audio has been written / fed. */
+  written: Record<Side, number>;
+  stopping: boolean;
 };
 
 export class Recorder {
@@ -137,6 +143,8 @@ export class Recorder {
         sources: { mic: sources.includes("mic") ? "ok" : "off", system: sources.includes("system") ? "ok" : "off" },
         levels: { mic: 0, system: 0 },
         error: null,
+        written: { mic: 0, system: 0 },
+        stopping: false,
       };
       ref = active;
       this.deps.bridge.setTarget(meta.id, input.agentSession);
@@ -146,10 +154,11 @@ export class Recorder {
           event: (e) => {
             if (e.event === "denied") { active.sources[e.side] = "denied"; active.error = e.message; this.emitStatus(); }
             if (e.event === "error") { active.error = e.message; this.emitStatus(); }
+            // The helper ended without being asked to (crash, killed): finish the meeting as interrupted.
+            if (e.event === "stopped" && !active.stopping && this.active === active) void this.finish(true).catch(() => {});
           },
           pcm: (side, chunk, atMs) => {
-            active.wav[side]?.write(chunk);
-            active.engine.write(side, chunk, atMs);
+            this.writeAudio(active, side, chunk, atMs);
             active.levels[side] = rms(chunk);
             const now = clock();
             if (now - this.lastLevelEmit > 200) { this.lastLevelEmit = now; this.emitStatus(); }
@@ -161,6 +170,9 @@ export class Recorder {
         store.updateMeeting(meta.id, { status: "saved", endedAt: new Date(clock()).toISOString(), interrupted: true });
         throw error;
       }
+      // Capture timestamps start at 0 when the helper is ready; the silence clock and labels share that epoch.
+      active.startedClock = clock();
+      active.meta = store.updateMeeting(meta.id, { startedAt: new Date(active.startedClock).toISOString() });
       this.active = active;
       const tickMs = this.deps.tickMs ?? 250;
       if (tickMs > 0) this.timer = setInterval(() => this.tick(), tickMs);
@@ -175,7 +187,31 @@ export class Recorder {
   tick(): void {
     this.deps.bridge.releaseExpiredClaims();
     const a = this.active;
-    if (a) a.segmenter.tick(this.deps.clock() - a.startedClock);
+    if (!a) return;
+    const now = this.deps.clock() - a.startedClock;
+    // A process tap sends nothing while no app plays. Feed silence so the VAD can end the last utterance.
+    for (const side of ["mic", "system"] as const) {
+      if (a.sources[side] !== "ok" || a.written[side] === 0) continue;
+      const gap = now - a.written[side];
+      if (gap > IDLE_FEED_AFTER_MS) {
+        const ms = Math.floor(gap);
+        const silence = Buffer.alloc(ms * BYTES_PER_MS);
+        a.wav[side]?.write(silence);
+        a.engine.write(side, silence, a.written[side]);
+        a.written[side] += ms;
+      }
+    }
+    a.segmenter.tick(now);
+  }
+
+  /** Writes PCM on the capture timeline: a gap before `atMs` becomes silence in the saved audio too. */
+  private writeAudio(a: Active, side: Side, chunk: Buffer, atMs: number) {
+    const wav = a.wav[side];
+    const gap = Math.min(MAX_PAD_MS, Math.floor(atMs - a.written[side]));
+    if (gap > 0 && wav) wav.write(Buffer.alloc(gap * BYTES_PER_MS));
+    wav?.write(chunk);
+    a.engine.write(side, chunk, atMs);
+    a.written[side] = Math.max(a.written[side], atMs + chunk.length / BYTES_PER_MS);
   }
 
   addUtterance(u: Omit<Utterance, "seq" | "id">): void {
@@ -201,9 +237,23 @@ export class Recorder {
     this.deps.events({ type: "segment", meetingId, segment: s.segment, utteranceSeqs: s.utterances.map((u) => u.seq) });
   }
 
-  async stop(): Promise<MeetingMeta> {
+  stop(): Promise<MeetingMeta> {
+    return this.finish(false);
+  }
+
+  private finishing: Promise<MeetingMeta> | null = null;
+
+  /** One finalization at a time: a requested stop and a helper exit never finalize twice. */
+  private finish(interrupted: boolean): Promise<MeetingMeta> {
+    if (this.finishing) return this.finishing;
     const a = this.active;
-    if (!a) throw Error("録音中の会議はありません");
+    if (!a) return Promise.reject(Error("録音中の会議はありません"));
+    a.stopping = true;
+    this.finishing = this.finalize(a, interrupted).finally(() => (this.finishing = null));
+    return this.finishing;
+  }
+
+  private async finalize(a: Active, interrupted: boolean): Promise<MeetingMeta> {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     await a.capture?.stop().catch(() => {});
@@ -211,7 +261,11 @@ export class Recorder {
     a.segmenter.flush(this.deps.clock() - a.startedClock);
     for (const w of Object.values(a.wav)) await w?.close();
     this.active = null;
-    const meta = this.deps.store.updateMeeting(a.meta.id, { status: "stopped", endedAt: new Date(this.deps.clock()).toISOString() });
+    const meta = this.deps.store.updateMeeting(a.meta.id, {
+      status: "stopped",
+      endedAt: new Date(this.deps.clock()).toISOString(),
+      ...(interrupted ? { interrupted: true } : {}),
+    });
     this.background = this.background.then(() => this.compressMeeting(meta.id));
     this.emitStatus();
     return meta;

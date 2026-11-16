@@ -134,6 +134,8 @@ export class DeliveryBridge {
   }
 
   poll(session: string, waitMs: number, signal: AbortSignal): Promise<Delivery | null> {
+    // Claims are maintained here too, so a stopped or restored meeting never keeps a claim forever.
+    this.releaseExpiredClaims();
     const now = this.tryClaim(session);
     if (now || waitMs <= 0 || signal.aborted) return Promise.resolve(now);
     return new Promise((resolve) => {

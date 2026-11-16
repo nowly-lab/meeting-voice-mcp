@@ -93,3 +93,82 @@ test("recoverInterrupted stops a meeting left recording and seals its open utter
   assert.equal(s.bridge.pending(m.id).count, 1);
   assert.equal(existsSync(s.store.audioPath(m.id, "mic", "wav")), false);
 });
+
+import { readFileSync } from "node:fs";
+
+function setup2(opts: { captureDelayMs?: number } = {}) {
+  let now = 1_000_000;
+  const store = new MeetingStore(mkdtempSync(join(tmpdir(), "mv-rec2-")));
+  const bridge = new DeliveryBridge(store, () => now);
+  let cb: SpeechCallbacks | null = null;
+  const writes: { side: Side; bytes: number; atMs: number }[] = [];
+  let on: { event(e: CaptureEvent): void; pcm(side: Side, b: Buffer, atMs: number): void } | null = null;
+  const engines: EngineFactory = async (_k, _s, c) => { cb = c; return { write: (side, pcm, atMs) => void writes.push({ side, bytes: pcm.length, atMs }), stop: async () => {} }; };
+  const capture = async (sources: Side[], o: NonNullable<typeof on>) => {
+    on = o; now += opts.captureDelayMs ?? 0;
+    o.event({ event: "ready", sources });
+    return { stop: async () => {}, exited: () => true };
+  };
+  const recorder = new Recorder({ store, bridge, capture, engines, clock: () => now, events: () => {}, compress: async () => {}, tickMs: 0 });
+  return { store, bridge, recorder, writes, cb: () => cb!, on: () => on!, at: (t: number) => { now = t; recorder.tick(); }, now: () => now };
+}
+
+test("Q2: the silence clock starts when capture is ready, not before", async () => {
+  const s = setup2({ captureDelayMs: 2000 });
+  const m = await s.recorder.start({ agentSession: "A" });
+  const t0 = s.now();
+  s.cb().text({ side: "mic", text: "一", startMs: 0, endMs: 1000 });
+  s.at(t0 + 3999);
+  assert.equal(s.bridge.pending(m.id).count, 0);
+  s.at(t0 + 4000);
+  assert.equal(s.bridge.pending(m.id).count, 1);
+});
+
+test("F3: retained audio keeps gaps so it shares the transcript timeline", async () => {
+  const s = setup2();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", Buffer.alloc(3200), 0);
+  s.on().pcm("system", Buffer.alloc(3200), 5000);
+  await s.recorder.stop();
+  const wav = readFileSync(s.store.audioPath(m.id, "system", "wav"));
+  const seconds = wav.readUInt32LE(40) / 32000;
+  assert.ok(Math.abs(seconds - 5.1) < 0.01, `duration ${seconds}`);
+});
+
+test("Q1: a side that stops sending PCM is fed silence so its last utterance can end", async () => {
+  const s = setup2();
+  const t0 = s.now();
+  await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", Buffer.alloc(3200), 0);
+  s.writes.length = 0;
+  s.at(t0 + 2000);
+  const fed = s.writes.filter((w) => w.side === "system");
+  assert.ok(fed.length > 0, "silence was written to the engine");
+  assert.equal(fed[0]!.atMs, 100);
+  const total = fed.reduce((a, w) => a + w.bytes, 0) / 32;
+  assert.ok(total >= 1500 && total <= 1900, `fed ${total} ms`);
+});
+
+test("F5: an unexpected capture exit stops the meeting as interrupted", async () => {
+  const s = setup2();
+  const m = await s.recorder.start({ agentSession: "A" });
+  s.cb().text({ side: "mic", text: "途中", startMs: 0, endMs: 100 });
+  s.on().event({ event: "stopped" });
+  await new Promise((r) => setTimeout(r, 20));
+  assert.equal(s.recorder.activeMeetingId(), null);
+  const meta = s.store.readMeta(m.id);
+  assert.equal(meta.interrupted, true);
+  assert.equal(s.bridge.pending(m.id).count, 1, "open speech was sealed");
+});
+
+test("Q1+F3: fed silence is also in the saved audio, so later chunks stay on the timeline", async () => {
+  const s = setup2();
+  const t0 = s.now();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", Buffer.alloc(3200), 0);
+  s.at(t0 + 2000);
+  s.on().pcm("system", Buffer.alloc(3200), 3000);
+  await s.recorder.stop();
+  const seconds = readFileSync(s.store.audioPath(m.id, "system", "wav")).readUInt32LE(40) / 32000;
+  assert.ok(Math.abs(seconds - 3.1) < 0.01, `duration ${seconds}`);
+});

@@ -110,3 +110,28 @@ test("history: list, search, transcript and play from an utterance", { skip }, a
   assert.ok(t >= 2 && t < 3.5, `currentTime ${t}`);
   await page.close(); await s.close();
 });
+
+test("F6: a permission loss after the page loaded shows the banner", { skip }, async () => {
+  let onEvent: ((e: { event: "denied"; side: "system"; message: string }) => void) | null = null;
+  const engines: EngineFactory = async () => ({ write: () => {}, stop: async () => {} });
+  const capture: CaptureFn = async (sources, on) => { onEvent = on.event as never; on.event({ event: "ready", sources }); return { stop: async () => {}, exited: () => true }; };
+  const s = await startServer({ dataDir: mkdtempSync(join(tmpdir(), "mv-web-")), env: {}, capture, engines, openUrl: () => {} });
+  await s.recorder.start({ agentSession: "A" });
+  const page = await open(s);
+  await page.locator(".rec").waitFor();
+  await new Promise((r) => setTimeout(r, 500));
+  onEvent!({ event: "denied", side: "system", message: "lost" });
+  await page.getByText("Macの音の許可がありません").waitFor({ timeout: 3000 });
+  await page.close(); await s.recorder.stop(); await s.close();
+});
+
+test("F7: a #meeting= link opens that meeting in history", { skip }, async () => {
+  const { s, state } = await boot();
+  const m = await s.recorder.start({ title: "深いリンク", agentSession: "A" });
+  state.cb!.text({ side: "mic", text: "一", startMs: 0, endMs: 100 });
+  await s.recorder.stop();
+  const page = await open(s, `#meeting=${m.id}`);
+  await page.getByRole("heading", { name: "深いリンク" }).waitFor({ timeout: 5000 });
+  assert.equal(await page.locator("[data-tab=history]").getAttribute("aria-selected"), "true");
+  await page.close(); await s.close();
+});

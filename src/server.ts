@@ -3,7 +3,7 @@
 // from server.json there. Page APIs need the per-page nonce and only read.
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
+import { closeSync, createReadStream, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -116,7 +116,63 @@ function sendFile(req: IncomingMessage, res: ServerResponse, file: string) {
 
 const PAGE_FALLBACK = `<!doctype html><meta charset="utf-8"><title>meeting-voice-mcp</title><body><div id="app"></div><script>window.__NONCE__="%NONCE%"</script><script type="module" src="/assets/main.js"></script>`;
 
+export class AlreadyRunning extends Error {
+  readonly code = "ALREADY_RUNNING";
+}
+
+function alive(pid: number) {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "EPERM";
+  }
+}
+
+/** One server per data folder: an exclusive lock file holding the owner's pid and a random id. */
+export function acquireServerLock(dataDir: string): () => void {
+  mkdirSync(dataDir, { recursive: true, mode: 0o700 });
+  const file = join(dataDir, "server.lock");
+  const owner = randomUUID();
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const fd = openSync(file, "wx", 0o600);
+      writeSync(fd, JSON.stringify({ pid: process.pid, owner }));
+      closeSync(fd);
+      return () => {
+        try {
+          if (JSON.parse(readFileSync(file, "utf8")).owner === owner) rmSync(file, { force: true });
+        } catch {
+          /* already gone */
+        }
+      };
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      let holder = 0;
+      try {
+        holder = Number(JSON.parse(readFileSync(file, "utf8")).pid) || 0;
+      } catch {
+        holder = 0;
+      }
+      if (holder && alive(holder)) throw new AlreadyRunning(`meeting-voice-mcp is already running for this data folder (pid ${holder}).`);
+      rmSync(file, { force: true });
+    }
+  }
+  throw new AlreadyRunning("meeting-voice-mcp is already running for this data folder.");
+}
+
 export async function startServer(opts: ServerOptions): Promise<RunningServer> {
+  // Taken before any await, so two starts in a race cannot both pass.
+  const releaseLock = acquireServerLock(opts.dataDir);
+  try {
+    return await startLockedServer(opts, releaseLock);
+  } catch (error) {
+    releaseLock();
+    throw error;
+  }
+}
+
+async function startLockedServer(opts: ServerOptions, releaseLock: () => void): Promise<RunningServer> {
   const env = opts.env ?? process.env;
   const store = new MeetingStore(opts.dataDir);
   const bridge = new DeliveryBridge(store);
@@ -141,7 +197,7 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
   const openUrl = opts.openUrl ?? openInBrowser(env);
   let port = 0;
   const base = () => `http://127.0.0.1:${port}`;
-  const pageUrl = (meetingId?: string) => (meetingId ? `${base()}/#meeting=${meetingId}` : `${base()}/`);
+  const pageUrl = (meetingId?: string) => (meetingId ? `${base()}/#history=${meetingId}` : `${base()}/`);
 
   const checkHost = (req: IncomingMessage) => {
     const host = req.headers.host ?? "";
@@ -283,6 +339,9 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     server.listen(opts.port ?? 0, "127.0.0.1", () => r());
   });
   port = (server.address() as { port: number }).port;
+  // Claim expiry belongs to the server's lifetime, not to a recording (a final segment can be claimed after stop).
+  const maintenance = setInterval(() => bridge.releaseExpiredClaims(), 5_000);
+  maintenance.unref();
   store.writeServerInfo({ port, pid: process.pid, token });
 
   const running: RunningServer = {
@@ -293,12 +352,14 @@ export async function startServer(opts: ServerOptions): Promise<RunningServer> {
     bridge,
     recorder,
     async close() {
+      clearInterval(maintenance);
       if (recorder.activeMeetingId()) await recorder.stop().catch(() => {});
       await recorder.idle();
       for (const r of sse) r.end();
       server.closeAllConnections();
       await new Promise<void>((r) => server.close(() => r()));
       store.clearServerInfo(process.pid);
+      releaseLock();
     },
   };
   if (opts.open) openUrl(pageUrl());

@@ -11,7 +11,7 @@ let query = "";
 
 function route() {
   const h = location.hash.slice(1);
-  if (h.startsWith("history")) tab = "history";
+  if (h.startsWith("history") || h.startsWith("meeting=")) tab = "history";
   else tab = "live";
   for (const b of document.querySelectorAll<HTMLButtonElement>("[data-tab]")) b.setAttribute("aria-selected", String(b.dataset.tab === tab));
   void refresh();
@@ -48,7 +48,9 @@ const events = new EventSource(`/api/events?nonce=${encodeURIComponent(nonce)}`)
 events.onmessage = (m) => {
   const e = JSON.parse(m.data) as { type: string; side?: Side; active?: boolean; status?: ServerStatus["recording"] };
   if (e.type === "partial" && e.side) live.talking[e.side] = Boolean(e.active);
-  if (e.type === "status" && e.status && live.status && tab === "live" && e.status.meetingId === live.status.recording.meetingId) {
+  const shape = (r: ServerStatus["recording"]) => JSON.stringify({ ...r, levels: null, elapsedMs: null });
+  // Fast path only for level/clock updates; any other change (permission, error, target, waiting count) redraws.
+  if (e.type === "status" && e.status && live.status && tab === "live" && shape(e.status) === shape(live.status.recording)) {
     live.status.recording = e.status;
     // Level updates redraw only the meters.
     for (const side of ["mic", "system"] as const) {

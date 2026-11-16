@@ -65,8 +65,9 @@ type SideState = {
   buffer: string[];
   reconnecting: boolean;
   text: string;
-  voiceStart: number | null;
-  voiceEnd: number | null;
+  /** The utterance the text belongs to: from VAD, or the last one when text arrives late. */
+  span: { start: number; end: number | null } | null;
+  lastSpan: { start: number; end: number } | null;
   active: boolean;
   flushTimer: ReturnType<typeof setTimeout> | null;
 };
@@ -80,13 +81,18 @@ export async function createGeminiLive(
   let stopping = false;
   const states = new Map<Side, SideState>();
 
+  // Text is never dropped: it is emitted with the utterance it belongs to, however late it arrives.
   const emit = (s: SideState) => {
     if (s.flushTimer) clearTimeout(s.flushTimer);
     s.flushTimer = null;
     const text = s.text.trim();
-    if (text && s.voiceStart !== null) cb.text({ side: s.side, text, startMs: s.voiceStart, endMs: s.voiceEnd ?? s.voiceStart });
+    if (!text) return; // keep the span: the transcription may still be on its way
+    const span = s.span ?? s.lastSpan ?? { start: 0, end: 0 };
+    const end = span.end ?? span.start;
+    cb.text({ side: s.side, text, startMs: span.start, endMs: end });
     s.text = "";
-    if (!s.active) s.voiceStart = null;
+    s.lastSpan = { start: span.start, end };
+    if (!s.active) s.span = null;
   };
   const scheduleFlush = (s: SideState) => {
     if (s.active) return;
@@ -130,7 +136,7 @@ export async function createGeminiLive(
   }
 
   for (const side of opts.sides) {
-    const s: SideState = { side, session: null, handle: undefined, buffer: [], reconnecting: false, text: "", voiceStart: null, voiceEnd: null, active: false, flushTimer: null };
+    const s: SideState = { side, session: null, handle: undefined, buffer: [], reconnecting: false, text: "", span: null, lastSpan: null, active: false, flushTimer: null };
     states.set(side, s);
   }
   try {
@@ -148,10 +154,12 @@ export async function createGeminiLive(
       if (!s) return;
       s.active = active;
       if (active) {
-        if (s.voiceStart === null) s.voiceStart = atMs;
+        // Text still waiting from the previous utterance keeps that utterance's times.
+        if (s.text.trim()) emit(s);
+        s.span = { start: atMs, end: null };
         if (s.flushTimer) clearTimeout(s.flushTimer);
       } else {
-        s.voiceEnd = atMs;
+        if (s.span) s.span.end = atMs;
         cb.pending(side, atMs);
         scheduleFlush(s);
       }

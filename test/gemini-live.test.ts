@@ -92,3 +92,26 @@ test("real Gemini Live transcribes the synthetic fixture", { skip: !process.env.
   await e.stop();
   assert.ok(r.seen.some((s) => s.startsWith("text mic") && s.includes("保留")), r.seen.join("|"));
 });
+
+test("F1: text arriving after the quiet timer is still emitted with the utterance times", async () => {
+  const f = fakes(); const r = record();
+  const e = await createGeminiLive({ apiKey: "k", model: "m", language: "ja", sides: ["mic"], connect: f.connect, vad: f.vad, quietMs: 20 }, r.cb);
+  f.voice("mic", true, 1000);
+  f.voice("mic", false, 2000);
+  await sleep(40);
+  f.conns[0]!.cb.onTranscription("遅れて届いた文字");
+  await sleep(40);
+  assert.ok(r.seen.includes("text mic 遅れて届いた文字 1000-2000"), r.seen.join("|"));
+  await e.stop();
+});
+
+test("F1: a fragment after a partial emission becomes its own utterance; stop flushes pending text", async () => {
+  const f = fakes(); const r = record();
+  const e = await createGeminiLive({ apiKey: "k", model: "m", language: "ja", sides: ["mic"], connect: f.connect, vad: f.vad, quietMs: 20 }, r.cb);
+  f.voice("mic", true, 0); f.voice("mic", false, 500);
+  f.conns[0]!.cb.onTranscription("前半");
+  await sleep(40);
+  f.conns[0]!.cb.onTranscription("後半");
+  await e.stop();
+  assert.deepEqual(r.seen.filter((s) => s.startsWith("text")), ["text mic 前半 0-500", "text mic 後半 0-500"]);
+});

@@ -88,3 +88,23 @@ test("gemini without a key: isError naming GEMINI_API_KEY and no meeting", async
   await c.close();
   await s.close();
 });
+
+test("F4: a second server on the same data folder is refused", async () => {
+  const hw = fakeHardware();
+  const dataDir = mkdtempSync(join(tmpdir(), "mv-srv-"));
+  const results = await Promise.allSettled([0, 1].map(() => startServer({ dataDir, env: {}, capture: hw.capture, engines: hw.engines, openUrl: () => {} })));
+  const ok = results.filter((r) => r.status === "fulfilled");
+  assert.equal(ok.length, 1);
+  assert.match(String((results.find((r) => r.status === "rejected") as PromiseRejectedResult).reason), /already running|動いています/);
+  await (ok[0] as PromiseFulfilledResult<Awaited<ReturnType<typeof startServer>>>).value.close();
+  const again = await startServer({ dataDir, env: {}, capture: hw.capture, engines: hw.engines, openUrl: () => {} });
+  await again.close();
+});
+
+test("F7: open_page links open the meeting in history", async () => {
+  const { s } = await boot();
+  const c = await connectRemote({ port: s.port, pid: process.pid, token: s.token });
+  const r = await c.callTool({ name: "open_page", arguments: { meeting_id: "11111111-1111-4111-8111-111111111111" } });
+  assert.match(JSON.stringify(r.content), /#history=11111111-1111-4111-8111-111111111111/);
+  await c.close(); await s.close();
+});

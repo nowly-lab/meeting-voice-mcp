@@ -105,7 +105,16 @@ export async function main(argv: string[], env: Env, io: IO): Promise<number> {
       }
       return 0;
     }
-    const server = await startServer({ dataDir, env, open: !background && !argv.includes("--no-open") });
+    let server;
+    try {
+      server = await startServer({ dataDir, env, open: !background && !argv.includes("--no-open") });
+    } catch (error) {
+      if ((error as { code?: string }).code === "ALREADY_RUNNING") {
+        io.out("meeting-voice-mcp は別のプロセスで起動中です\n");
+        return 0;
+      }
+      throw error;
+    }
     io.out(`meeting-voice-mcp ${VERSION}: ${server.url}/ （止めるには Ctrl+C か meeting-voice-mcp stop）\n`);
     const shutdown = () => void server.close().finally(() => process.exit(0));
     process.on("SIGINT", shutdown);

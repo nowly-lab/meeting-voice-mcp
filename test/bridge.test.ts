@@ -114,3 +114,13 @@ test("an aborted poll returns null", async () => {
   ac.abort();
   assert.equal(await p, null);
 });
+
+test("F2: an expired claim is released by the next poll, without a recording timer", async () => {
+  const { bridge, m, seg, advance } = setup();
+  bridge.setTarget(m.id, "A");
+  bridge.enqueue(m.id, seg(1));
+  await bridge.poll("A", 0, never);
+  advance(30_000);
+  const again = await bridge.poll("A", 0, never);
+  assert.equal(again?.resent, true);
+});
