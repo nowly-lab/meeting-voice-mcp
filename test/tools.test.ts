@@ -71,3 +71,17 @@ test("search, list and transcript paging", async () => {
   assert.deepEqual(page.utterances.map((u: { text: string }) => u.text), ["発言2", "発言3"]);
   assert.equal(page.total, 5);
 });
+
+test("stop_recording returns only a summary", async () => {
+  const { c, hw } = ctx();
+  await callTool(c, "start_recording", { title: "返品の流れ", instructions: "図を直す" });
+  hw.state.cb!.text({ side: "mic", text: "一", startMs: 0, endMs: 100 });
+  hw.state.cb!.text({ side: "mic", text: "二", startMs: 200, endMs: 300 });
+  const r = body(await callTool(c, "stop_recording", {}));
+  assert.deepEqual(Object.keys(r.meeting).sort(), ["audioGaps", "endedAt", "engine", "id", "segments", "startedAt", "status", "title", "utterances"]);
+  assert.equal(r.meeting.title, "返品の流れ");
+  assert.equal(r.meeting.utterances, 2);
+  assert.equal(r.meeting.segments, 1);
+  assert.deepEqual(r.meeting.audioGaps, { count: 0, totalMs: 0 });
+  assert.match(r.page, /^http:\/\/x\//);
+});

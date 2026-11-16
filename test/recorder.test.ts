@@ -231,3 +231,14 @@ test("R3-1: contiguous chunks record no gap", async () => {
   await s.recorder.stop();
   assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
 });
+
+test("overlaps under 20 ms are trimmed without an audio gap", async () => {
+  const s = setup2();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.on().pcm("system", tone(100, 1000), 99.6);   // capture clock jitter, not lost audio
+  s.on().pcm("system", tone(100, 1000), 185);    // 14.6 ms early: still jitter
+  assert.deepEqual(s.recorder.status().audioGaps, []);
+  await s.recorder.stop();
+  assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
+});
