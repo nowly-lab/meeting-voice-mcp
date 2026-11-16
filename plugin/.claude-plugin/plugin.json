@@ -1,0 +1,8 @@
+{
+  "name": "meeting-voice",
+  "version": "0.1.0",
+  "description": "meeting-voice-mcp for Claude Code: the meeting_voice tool, and each silence-separated segment of the meeting delivered into the session that started recording.",
+  "author": { "name": "nowly-lab" },
+  "repository": "https://github.com/nowly-lab/meeting-voice-mcp",
+  "license": "MIT"
+}

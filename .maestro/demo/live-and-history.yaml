@@ -1,0 +1,53 @@
+# meeting-voice-mcp's page during a meeting: Claude starts recording over MCP, each pause becomes a segment
+# sent to Claude (送信済み), recording stops, and the meeting is opened in history.
+# The server, recorder, segmenter, delivery queue and page are the real code; demo-server.ts replaces only
+# audio capture and speech recognition with fixed lines, and plays the agent (start, ack, stop).
+# Local:
+#   D=$(mktemp -d); O=<out folder>
+#   node .maestro/demo/demo-server.ts $D $O &      # prints http://127.0.0.1:<port>
+#   MAESTRO_MV_URL=http://127.0.0.1:<port> python3 <implementation>/scripts/demo-video/demo_take.py web \
+#     .maestro/demo/live-and-history.yaml $O --points 1440x900 --window-title "meeting-voice-mcp"
+# The demo server stops itself a minute after the recording ends.
+url: ${MAESTRO_MV_URL}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Claudeから録音を始めるのを待っています"
+    timeout: 30000
+    label: "Claudeからの録音開始を待つ"
+# Wait so OpenScreen starts recording before the first action.
+- extendedWaitUntil:
+    visible: "Never shown text"
+    timeout: 9000
+    optional: true
+- extendedWaitUntil:
+    visible: "録音中"
+    timeout: 30000
+    label: "Claudeが録音を開始"
+- extendedWaitUntil:
+    visible: "送信済み.*"
+    timeout: 40000
+    label: "区切りをClaudeに送信"
+- extendedWaitUntil:
+    visible: ".*引き当てた在庫を戻します.*"
+    timeout: 40000
+    label: "次の発言も文字に"
+- extendedWaitUntil:
+    visible: "Claudeから録音を始めるのを待っています"
+    timeout: 40000
+    label: "Claudeが録音を停止"
+- tapOn:
+    text: "履歴"
+    label: "履歴を開く"
+- extendedWaitUntil:
+    visible: "区切り 01"
+    timeout: 15000
+- assertVisible:
+    text: "区切り 02"
+    label: "区切りごとに見返す"
+# Hold the last screen briefly before the take ends.
+- extendedWaitUntil:
+    visible: "Never shown text"
+    timeout: 3000
+    optional: true

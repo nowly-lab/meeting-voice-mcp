@@ -1,0 +1,209 @@
+{
+  "schema": "context-map/v1",
+  "title": "境界",
+  "checked": {
+    "revision": "planned",
+    "date": "2026-11-16"
+  },
+  "contexts": [
+    {
+      "id": "server",
+      "name": "meeting-voice-mcp のサーバー",
+      "tech": "TypeScript / Node.js node:http / MCP SDK",
+      "responsibility": "録音の開始と停止、文字起こし、区切り、届ける待ち行列、データフォルダ、MCP、画面の配信",
+      "owns": [
+        "データフォルダ(server.json, seq.json, meetings/)",
+        "GEMINI_API_KEY"
+      ],
+      "contract": [
+        "MCP ツール(stdio と /mcp)",
+        "/api/bridge/poll・claim・ack(トークン付き、Origin なし)",
+        "画面の /api/*(nonce 付き、読むだけ)"
+      ],
+      "guarantees": [
+        "127.0.0.1 だけで待ち受ける",
+        "区切りは一度だけ届ける",
+        "話された言葉はデータとして渡す"
+      ],
+      "domains": [
+        "recording",
+        "segment",
+        "closing"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/server.ts",
+          "symbol": "startServer",
+          "role": "entry"
+        },
+        {
+          "path": "src/cli.ts",
+          "symbol": "main",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "capture",
+      "name": "録音部品",
+      "tech": "Swift / AVFoundation / Core Audio プロセスタップ",
+      "responsibility": "マイクと Mac の音を 16 kHz モノラル PCM で出し、音量と許可の状態を知らせる",
+      "owns": [
+        "音声デバイスとタップ"
+      ],
+      "contract": [
+        "標準出力の JSON 行(ready・level・error)と PCM"
+      ],
+      "domains": [
+        "recording"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "native/AudioCapture.swift",
+          "symbol": "makeTap",
+          "role": "source"
+        }
+      ]
+    },
+    {
+      "id": "speech",
+      "name": "文字起こし",
+      "tech": "sherpa-onnx-node(Parakeet + Silero VAD)/ @google/genai Live",
+      "responsibility": "PCM から発言と文字を作る",
+      "owns": [
+        "models/(固定の版・SHA-256)"
+      ],
+      "contract": [
+        "{ side, startMs, endMs, text }"
+      ],
+      "domains": [
+        "recording"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/speech/parakeet.ts",
+          "symbol": "createParakeet",
+          "role": "source"
+        }
+      ]
+    },
+    {
+      "id": "plugin",
+      "name": "Claude Code プラグイン",
+      "tech": "Claude Code hooks module",
+      "responsibility": "meeting_voice ツールをセッション ID つきで中継し、区切りを受け取ってセッションに入れる",
+      "owns": [
+        "届ける時機(手が空いたか)"
+      ],
+      "contract": [
+        "$.prompt.submit / $.session.append",
+        "サーバーの /mcp と /api/bridge/*"
+      ],
+      "domains": [
+        "delivery"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "plugin/hooks/register.ts",
+          "symbol": "register",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "web",
+      "name": "画面",
+      "tech": "TypeScript / esbuild",
+      "responsibility": "ライブ(区切りと送信状況、音量)と履歴(一覧、文字起こし、音声の再生)を見せる",
+      "owns": [],
+      "contract": [
+        "サーバーの /api/*(nonce 付き)と SSE"
+      ],
+      "domains": [
+        "closing"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "web/src/live.ts",
+          "symbol": "renderLive",
+          "role": "ui"
+        }
+      ]
+    },
+    {
+      "id": "es",
+      "name": "event-storming-mcp",
+      "tech": "別の公開ツール",
+      "responsibility": "Claude の apply_changes で図を直し、会議の画面を描き直す",
+      "owns": [
+        "ドメインモデル"
+      ],
+      "contract": [
+        "MCP(apply_changes など)"
+      ],
+      "domains": [
+        "delivery"
+      ],
+      "changed": true
+    },
+    {
+      "id": "claude",
+      "name": "Claude Code のセッション",
+      "tech": "Claude Code",
+      "responsibility": "録音を始め、届いた区切りを読み、録音開始時の指示に従って event-storming-mcp を使う",
+      "owns": [
+        "録音開始時の指示"
+      ],
+      "contract": [
+        "プラグインが入れるメッセージ"
+      ],
+      "domains": [
+        "delivery"
+      ],
+      "changed": true
+    }
+  ],
+  "relations": [
+    {
+      "from": "server",
+      "to": "capture",
+      "label": "起動して PCM を受ける",
+      "changed": true
+    },
+    {
+      "from": "server",
+      "to": "speech",
+      "label": "PCM を渡して文字を受ける",
+      "changed": true
+    },
+    {
+      "from": "plugin",
+      "to": "server",
+      "label": "ツールの中継と区切りの受け取り",
+      "changed": true
+    },
+    {
+      "from": "plugin",
+      "to": "claude",
+      "label": "区切りをメッセージとして入れる",
+      "changed": true
+    },
+    {
+      "from": "claude",
+      "to": "es",
+      "label": "図を直す",
+      "changed": true
+    },
+    {
+      "from": "web",
+      "to": "server",
+      "label": "見るだけ",
+      "changed": true
+    }
+  ]
+}

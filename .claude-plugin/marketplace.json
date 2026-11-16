@@ -1,0 +1,7 @@
+{
+  "name": "meeting-voice-mcp",
+  "owner": { "name": "nowly-lab" },
+  "plugins": [
+    { "name": "meeting-voice", "source": "./plugin", "description": "Deliver meeting segments from meeting-voice-mcp into the Claude Code session that started recording." }
+  ]
+}

@@ -1,0 +1,174 @@
+<!doctype html>
+<!-- 生成物: 直接編集しないでください。元データ: data/*.json。scrum-domain-modeling の scripts/domain-model.mjs render で作り直します。 -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="generator" content="scrum-domain-modeling/domain-model.mjs">
+<title>コンテキスト · meeting-voice-mcp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root {
+  --wall: #fbfbf9; --wall-dot: #dcdcd4; --paper: #ffffff; --ink: #24241f; --ink-soft: #64645b;
+  --line: #d9d9cf; --ring: #6d6d66; --accent: #2f5bd3; --focus: #2563eb; --row: #f4f4ef;
+  --ok: #dbeafe; --bad: #fde2e4; --skip: #ececea; --undef: #fff4cc;
+  --s-event: #ff9e4f; --s-command: #a9cdf1; --s-policy: #b985ca; --s-external: #eda1c6;
+  --s-aggregate: #f4ce2c; --s-readModel: #c6e15c; --s-actor: #fdf6b6; --s-hotspot: #ef7088; --s-ink: #1c1a14; --hot: #ff4030;
+  --f-note: "Klee One", "Hiragino Maru Gothic ProN", "Yu Gothic", cursive;
+  --f-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --wall: #1c1d1a; --wall-dot: #30312c; --paper: #24251f; --ink: #ecece6; --ink-soft: #a6a69c; --line: #3a3b35;
+  --ring: #a8a89e; --accent: #8fb0ff; --focus: #93c5fd; --row: #2a2b25; --ok: #1e3a5f; --bad: #5b2530; --skip: #34352f; --undef: #4a4220; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --wall: #1c1d1a; --wall-dot: #30312c; --paper: #24251f; --ink: #ecece6; --ink-soft: #a6a69c; --line: #3a3b35;
+  --ring: #a8a89e; --accent: #8fb0ff; --focus: #93c5fd; --row: #2a2b25; --ok: #1e3a5f; --bad: #5b2530; --skip: #34352f; --undef: #4a4220; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 14px/1.65 var(--f-ui); }
+a { color: var(--accent); }
+.top { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--paper); border-bottom: 1px solid var(--line); }
+.crumb { font-weight: 700; } .crumb span { color: var(--ink-soft); font-weight: 500; margin: 0 6px; }
+.back { text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 12px; color: var(--ink); background: var(--paper); }
+main { padding: 24px max(16px, env(safe-area-inset-left, 0px)) 48px; display: grid; gap: 22px; min-width: 0; }
+h1 { margin: 0; font-size: 26px; line-height: 1.3; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; text-wrap: balance; }
+h3 { margin: 0; font-size: 15px; }
+.lede { margin: 4px 0 0; color: var(--ink-soft); max-width: 80ch; }
+.meta { font-size: 12px; color: var(--ink-soft); font-family: var(--f-mono); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--paper); }
+th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--row); font-weight: 700; white-space: nowrap; }
+code, .path { font-family: var(--f-mono); font-size: 12px; overflow-wrap: anywhere; }
+.chip { display: inline-block; padding: 1px 8px; margin: 2px 4px 2px 0; border-radius: 4px; color: var(--s-ink); font-size: 12px; text-decoration: none; }
+.code { display: inline-block; padding: 0 6px; margin: 2px 4px 2px 0; border-radius: 4px; background: var(--row); border: 1px solid var(--line); font: 12px var(--f-mono); }
+.badge { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; background: rgba(28,26,20,.14); color: var(--s-ink); margin-left: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.legend i { display: inline-block; width: 18px; height: 18px; border-radius: 2px; vertical-align: -4px; margin-right: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.legend small { color: var(--ink-soft); margin-left: 4px; }
+.foot { font-size: 12px; color: var(--ink-soft); }
+ul.plain { margin: 0; padding-left: 18px; }
+/* What the current plan changes: pulses while main has .show-changed (the toggle on each page). */
+.changes { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; border-left: 4px solid var(--hot); }
+.changes .list { flex: 1 1 320px; min-width: 0; }
+.changes a.item { margin-right: 10px; white-space: nowrap; }
+.toggle { font-size: 13px; white-space: nowrap; }
+.new { display: inline-block; padding: 0 7px; margin-left: 6px; border-radius: 999px; background: var(--hot); color: #fff; font: 700 11px/1.6 var(--f-ui); vertical-align: 1px; }
+@keyframes changed-ping {
+  0% { box-shadow: 0 0 0 4px var(--ink), 0 0 0 4px rgba(255,64,48,.95), 0 10px 14px -6px rgba(0,0,0,.5); filter: brightness(1.15); }
+  20% { filter: brightness(1); }
+  70%, 100% { box-shadow: 0 0 0 4px var(--ink), 0 0 0 40px rgba(255,64,48,0), 0 10px 14px -6px rgba(0,0,0,.5); filter: brightness(1); } }
+@keyframes chip-ping { 0% { box-shadow: 0 0 0 2px var(--ink), 0 0 0 2px rgba(255,64,48,.95); } 70%, 100% { box-shadow: 0 0 0 2px var(--ink), 0 0 0 12px rgba(255,64,48,0); } }
+@keyframes row-flash { 0% { background-color: rgba(255,64,48,.38); } 60%, 100% { background-color: rgba(255,64,48,.1); } }
+@keyframes svg-blink { 50% { stroke-opacity: .25; } }
+.show-changed .chip.changed { box-shadow: 0 0 0 2px var(--ink); animation: chip-ping 1.2s ease-out infinite; }
+.show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed { animation: row-flash 1.2s ease-out infinite; }
+.show-changed tr.is-changed > :first-child { box-shadow: inset 4px 0 0 var(--hot); }
+.show-changed .lc.is-changed, .show-changed nav a.is-changed { outline: 3px solid var(--hot); outline-offset: 2px; }
+.show-changed .gbox.is-changed { stroke: var(--hot); stroke-width: 4; animation: svg-blink 1.2s ease-in-out infinite; }
+.show-changed .gedge.is-changed { stroke: var(--hot); stroke-width: 3; animation: svg-blink 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .show-changed .chip.changed, .show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed, .show-changed .gbox.is-changed, .show-changed .gedge.is-changed { animation: none; }
+  .show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed { background-color: rgba(255,64,48,.18); } }
+
+.zoomable { position: relative; min-width: 0; }
+.zoom-view { overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; max-height: 80vh; }
+.zoom-view:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.zoom-content { width: max-content; }
+.zoom-ctrl { position: absolute; top: 8px; right: 8px; z-index: 25; display: flex; align-items: center; gap: 2px; padding: 3px;
+  background: var(--paper); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,.12); }
+.zoom-ctrl button { min-width: 32px; height: 30px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--ink); font: 500 14px var(--f-ui); cursor: pointer; }
+.zoom-ctrl button:hover { background: var(--row); }
+.zoom-ctrl button:focus-visible { outline: 2px solid var(--focus); }
+.zoom-ctrl output { min-width: 3.4em; text-align: center; font: 12px var(--f-mono); color: var(--ink-soft); }
+.graph { display: block; max-width: none; }
+.gbox { fill: var(--paper); stroke: var(--ring); stroke-width: 1.5; }
+.gbox.initial { stroke-width: 3; } .gbox.final { stroke-dasharray: 5 3; }
+.gtext { font: 700 15px var(--f-ui); fill: var(--ink); } .gsub { font: 11px var(--f-mono); fill: var(--ink-soft); }
+.gedge { fill: none; stroke: var(--ink); stroke-width: 1.6; }
+.glabel { font: 12px var(--f-ui); fill: var(--ink); } .glabel-bg { fill: var(--wall); }
+.headfill { fill: var(--ink); }.diagram{background:var(--wall);border:1px solid var(--line);border-radius:6px}th[scope=row]{background:var(--paper);white-space:normal;min-width:8em}</style>
+</head>
+<body>
+<header class="top"><div class="crumb">meeting-voice-mcp<span>/</span>ドメインモデル<span>/</span>コンテキスト</div><a class="back" href="index.html">← 一覧へ</a></header>
+<main class="show-changed" id="main">
+<div><h1>境界</h1><div class="meta">確認したリビジョン planned · 2026-11-16</div></div>
+<section class="card changes"><h2>今回の計画で変わる境界と関係（13）</h2><div class="list"><a class="item" href="#ctx-server">meeting-voice-mcp のサーバー</a><a class="item" href="#ctx-capture">録音部品</a><a class="item" href="#ctx-speech">文字起こし</a><a class="item" href="#ctx-plugin">Claude Code プラグイン</a><a class="item" href="#ctx-web">画面</a><a class="item" href="#ctx-es">event-storming-mcp</a><a class="item" href="#ctx-claude">Claude Code のセッション</a><a class="item" href="#relations">meeting-voice-mcp のサーバー → 録音部品：起動して PCM を受ける</a><a class="item" href="#relations">meeting-voice-mcp のサーバー → 文字起こし：PCM を渡して文字を受ける</a><a class="item" href="#relations">Claude Code プラグイン → meeting-voice-mcp のサーバー：ツールの中継と区切りの受け取り</a><a class="item" href="#relations">Claude Code プラグイン → Claude Code のセッション：区切りをメッセージとして入れる</a><a class="item" href="#relations">Claude Code のセッション → event-storming-mcp：図を直す</a><a class="item" href="#relations">画面 → meeting-voice-mcp のサーバー：見るだけ</a></div><label class="toggle"><input type="checkbox" id="show-changed" checked> 光らせて示す</label></section>
+<section class="card" id="relations"><h2>関係図</h2><div class="zoomable" data-fit="width">
+<div class="zoom-ctrl" role="toolbar" aria-label="拡大縮小"><button type="button" data-z="out" aria-label="縮小">−</button><output aria-live="polite">100%</output><button type="button" data-z="in" aria-label="拡大">＋</button><button type="button" data-z="fit">全体</button><button type="button" data-z="one">等倍</button></div>
+<div class="zoom-view diagram" tabindex="0" aria-label="ピンチまたは Ctrl/⌘ + ホイールで拡大縮小"><div class="zoom-content"><svg class="graph" viewBox="0 0 1605 304" width="1605" height="304" role="img" aria-label="境界"><defs><marker id="gh-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" class="headfill"/></marker></defs><polyline class="gedge is-changed" points="866,152 1164,152" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="944.5" y="129" width="141" height="18" rx="3"/><text class="glabel" x="1015" y="142" text-anchor="middle">起動して PCM を受ける</text><polyline class="gedge is-changed" points="866,170.7 876,170.7 876,248 1164,248" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="936" y="225" width="158" height="18" rx="3"/><text class="glabel" x="1015" y="238" text-anchor="middle">PCM を渡して文字を受ける</text><polyline class="gedge is-changed" points="244,74.7 254,74.7 254,152 574,152" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="314" y="129" width="190" height="18" rx="3"/><text class="glabel" x="409" y="142" text-anchor="middle">ツールの中継と区切りの受け取り</text><polyline class="gedge is-changed" points="244,56 604.5,56" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="314" y="33" width="190" height="18" rx="3"/><text class="glabel" x="409" y="46" text-anchor="middle">区切りをメッセージとして入れる</text><polyline class="gedge is-changed" points="835.5,56 1164,56" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="986" y="33" width="58" height="18" rx="3"/><text class="glabel" x="1015" y="46" text-anchor="middle">図を直す</text><polyline class="gedge is-changed" points="244,186 514,186 514,170.7 574,170.7" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="380" y="163" width="58" height="18" rx="3"/><text class="glabel" x="409" y="176" text-anchor="middle">見るだけ</text><rect class="gbox is-changed" x="574" y="133.3" width="292" height="56" rx="8"/><text class="gtext" x="720" y="157.3" text-anchor="middle">meeting-voice-mcp のサーバー</text><text class="gsub" x="720" y="176.3" text-anchor="middle">TypeScript / Node.js node:http / MCP SDK</text><rect class="gbox is-changed" x="1164" y="124" width="330" height="56" rx="8"/><text class="gtext" x="1329" y="148" text-anchor="middle">録音部品</text><text class="gsub" x="1329" y="167" text-anchor="middle">Swift / AVFoundation / Core Audio プロセスタップ</text><rect class="gbox is-changed" x="1164" y="220" width="413" height="56" rx="8"/><text class="gtext" x="1370.5" y="244" text-anchor="middle">文字起こし</text><text class="gsub" x="1370.5" y="263" text-anchor="middle">sherpa-onnx-node(Parakeet + Silero VAD)/ @google/genai Live</text><rect class="gbox is-changed" x="28" y="37.3" width="216" height="56" rx="8"/><text class="gtext" x="136" y="61.3" text-anchor="middle">Claude Code プラグイン</text><text class="gsub" x="136" y="80.3" text-anchor="middle">Claude Code hooks module</text><rect class="gbox is-changed" x="80" y="158" width="164" height="56" rx="8"/><text class="gtext" x="162" y="182" text-anchor="middle">画面</text><text class="gsub" x="162" y="201" text-anchor="middle">TypeScript / esbuild</text><rect class="gbox is-changed" x="1164" y="28" width="193" height="56" rx="8"/><text class="gtext" x="1260.5" y="52" text-anchor="middle">event-storming-mcp</text><text class="gsub" x="1260.5" y="71" text-anchor="middle">別の公開ツール</text><rect class="gbox is-changed" x="604.5" y="28" width="231" height="56" rx="8"/><text class="gtext" x="720" y="52" text-anchor="middle">Claude Code のセッション</text><text class="gsub" x="720" y="71" text-anchor="middle">Claude Code</text></svg></div></div>
+</div></section>
+<section class="card"><h2>責任と契約</h2><div class="scroll"><table><thead><tr><th>境界</th><th>責任</th><th>持っている状態</th><th>契約</th><th>保証すること</th><th>ドメイン</th><th>証拠</th></tr></thead><tbody><tr id="ctx-server" class=" is-changed"><th scope="row">meeting-voice-mcp のサーバー<span class="new">変更</span><div class="meta">TypeScript / Node.js node:http / MCP SDK</div></th><td>録音の開始と停止、文字起こし、区切り、届ける待ち行列、データフォルダ、MCP、画面の配信</td><td><ul class="plain"><li>データフォルダ(server.json, seq.json, meetings/)</li><li>GEMINI_API_KEY</li></ul></td><td><ul class="plain"><li>MCP ツール(stdio と /mcp)</li><li>/api/bridge/poll・claim・ack(トークン付き、Origin なし)</li><li>画面の /api/*(nonce 付き、読むだけ)</li></ul></td><td><ul class="plain"><li>127.0.0.1 だけで待ち受ける</li><li>区切りは一度だけ届ける</li><li>話された言葉はデータとして渡す</li></ul></td><td><span class="code">録音</span><span class="code">区切り</span><span class="code">止めて残す</span></td><td><div class="path">src/server.ts <span class="code">startServer</span></div><div class="path">src/cli.ts <span class="code">main</span></div></td></tr><tr id="ctx-capture" class=" is-changed"><th scope="row">録音部品<span class="new">変更</span><div class="meta">Swift / AVFoundation / Core Audio プロセスタップ</div></th><td>マイクと Mac の音を 16 kHz モノラル PCM で出し、音量と許可の状態を知らせる</td><td><ul class="plain"><li>音声デバイスとタップ</li></ul></td><td><ul class="plain"><li>標準出力の JSON 行(ready・level・error)と PCM</li></ul></td><td>—</td><td><span class="code">録音</span></td><td><div class="path">native/AudioCapture.swift <span class="code">makeTap</span></div></td></tr><tr id="ctx-speech" class=" is-changed"><th scope="row">文字起こし<span class="new">変更</span><div class="meta">sherpa-onnx-node(Parakeet + Silero VAD)/ @google/genai Live</div></th><td>PCM から発言と文字を作る</td><td><ul class="plain"><li>models/(固定の版・SHA-256)</li></ul></td><td><ul class="plain"><li>{ side, startMs, endMs, text }</li></ul></td><td>—</td><td><span class="code">録音</span></td><td><div class="path">src/speech/parakeet.ts <span class="code">createParakeet</span></div></td></tr><tr id="ctx-plugin" class=" is-changed"><th scope="row">Claude Code プラグイン<span class="new">変更</span><div class="meta">Claude Code hooks module</div></th><td>meeting_voice ツールをセッション ID つきで中継し、区切りを受け取ってセッションに入れる</td><td><ul class="plain"><li>届ける時機(手が空いたか)</li></ul></td><td><ul class="plain"><li>$.prompt.submit / $.session.append</li><li>サーバーの /mcp と /api/bridge/*</li></ul></td><td>—</td><td><span class="code">届ける</span></td><td><div class="path">plugin/hooks/register.ts <span class="code">register</span></div></td></tr><tr id="ctx-web" class=" is-changed"><th scope="row">画面<span class="new">変更</span><div class="meta">TypeScript / esbuild</div></th><td>ライブ(区切りと送信状況、音量)と履歴(一覧、文字起こし、音声の再生)を見せる</td><td>—</td><td><ul class="plain"><li>サーバーの /api/*(nonce 付き)と SSE</li></ul></td><td>—</td><td><span class="code">止めて残す</span></td><td><div class="path">web/src/live.ts <span class="code">renderLive</span></div></td></tr><tr id="ctx-es" class=" is-changed"><th scope="row">event-storming-mcp<span class="new">変更</span><div class="meta">別の公開ツール</div></th><td>Claude の apply_changes で図を直し、会議の画面を描き直す</td><td><ul class="plain"><li>ドメインモデル</li></ul></td><td><ul class="plain"><li>MCP(apply_changes など)</li></ul></td><td>—</td><td><span class="code">届ける</span></td><td><span class="foot">—</span></td></tr><tr id="ctx-claude" class=" is-changed"><th scope="row">Claude Code のセッション<span class="new">変更</span><div class="meta">Claude Code</div></th><td>録音を始め、届いた区切りを読み、録音開始時の指示に従って event-storming-mcp を使う</td><td><ul class="plain"><li>録音開始時の指示</li></ul></td><td><ul class="plain"><li>プラグインが入れるメッセージ</li></ul></td><td>—</td><td><span class="code">届ける</span></td><td><span class="foot">—</span></td></tr></tbody></table></div></section>
+</main>
+<script>document.getElementById('show-changed').addEventListener('change', function (e) { document.getElementById('main').classList.toggle('show-changed', e.target.checked); });</script>
+
+<script>(function(){
+var MIN = 0.1, MAX = 4;
+document.querySelectorAll('.zoomable').forEach(function (box) {
+  var view = box.querySelector('.zoom-view'), content = box.querySelector('.zoom-content'), out = box.querySelector('output');
+  var s = 1, w = content.offsetWidth, h = content.offsetHeight;
+  function clamp(v) { return Math.min(MAX, Math.max(Math.min(MIN, fitAll()), v)); }
+  function fitAll() { return Math.min(view.clientWidth / w, view.clientHeight / h); }
+  function anchor(cx, cy) {
+    var r = view.getBoundingClientRect();
+    if (cx == null) { cx = r.left + view.clientWidth / 2; cy = r.top + view.clientHeight / 2; }
+    var px = cx - r.left, py = cy - r.top;
+    return { px: px, py: py, x: (view.scrollLeft + px) / s, y: (view.scrollTop + py) / s };
+  }
+  // Scale to v, keeping content point a.x/a.y under the screen point a.px/a.py.
+  function set(v, a) {
+    s = clamp(v); content.style.zoom = s; out.textContent = Math.round(s * 100) + '%';
+    if (a) { view.scrollLeft = a.x * s - a.px; view.scrollTop = a.y * s - a.py; }
+  }
+  function zoomAt(v, cx, cy) { set(v, anchor(cx, cy)); }
+  box.querySelector('.zoom-ctrl').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var z = b.dataset.z;
+    if (z === 'in') zoomAt(s * 1.25); else if (z === 'out') zoomAt(s / 1.25);
+    else if (z === 'one') zoomAt(1); else if (z === 'fit') { set(fitAll()); view.scrollLeft = 0; view.scrollTop = 0; }
+  });
+  view.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === '+' || e.key === '=') zoomAt(s * 1.25); else if (e.key === '-') zoomAt(s / 1.25); else if (e.key === '0') zoomAt(1); else return;
+    e.preventDefault();
+  });
+  // Trackpad pinch in Chrome, Edge and Firefox arrives as wheel + ctrlKey; so does Ctrl/⌘ + wheel.
+  view.addEventListener('wheel', function (e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    var d = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    zoomAt(s * Math.exp(-Math.max(-50, Math.min(50, d)) * 0.01), e.clientX, e.clientY);
+  }, { passive: false });
+  // Safari trackpad pinch arrives as gesture events.
+  var touching = false, g = null;
+  view.addEventListener('gesturestart', function (e) { e.preventDefault(); if (!touching) g = { s: s, a: anchor(e.clientX, e.clientY) }; });
+  view.addEventListener('gesturechange', function (e) { e.preventDefault(); if (!touching && g) set(g.s * e.scale, g.a); });
+  view.addEventListener('gestureend', function (e) { e.preventDefault(); g = null; });
+  // Two-finger touch pinch: zoom and pan with the fingers' midpoint.
+  var t = null;
+  function mid(ts) { return { x: (ts[0].clientX + ts[1].clientX) / 2, y: (ts[0].clientY + ts[1].clientY) / 2, d: Math.hypot(ts[0].clientX - ts[1].clientX, ts[0].clientY - ts[1].clientY) || 1 }; }
+  view.addEventListener('touchstart', function (e) {
+    if (e.touches.length !== 2) return;
+    touching = true; var m = mid(e.touches); t = { s: s, d: m.d, a: anchor(m.x, m.y) };
+  }, { passive: true });
+  view.addEventListener('touchmove', function (e) {
+    if (!t || e.touches.length !== 2) return;
+    e.preventDefault();
+    var m = mid(e.touches), r = view.getBoundingClientRect();
+    set(t.s * m.d / t.d, { x: t.a.x, y: t.a.y, px: m.x - r.left, py: m.y - r.top });
+  }, { passive: false });
+  view.addEventListener('touchend', function (e) { if (e.touches.length < 2) { t = null; touching = false; } });
+  view.addEventListener('touchcancel', function () { t = null; touching = false; });
+  // Start: fit the width (never above 100%) for wide boards; otherwise 100%.
+  var fit = box.dataset.fit;
+  set(fit === 'width' ? Math.min(1, view.clientWidth / w) : fit === 'all' ? Math.min(1, fitAll()) : 1);
+});
+// Bring a linked sticky into view at the current zoom.
+var target = location.hash && document.getElementById(decodeURIComponent(location.hash.slice(1)));
+if (target && target.closest('.zoom-view')) target.scrollIntoView({ block: 'center', inline: 'center' });
+})();</script>
+</body>
+</html>

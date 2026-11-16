@@ -1,0 +1,212 @@
+{
+  "schema": "workflow-models/v1",
+  "title": "状態の移り方",
+  "checked": {
+    "revision": "planned",
+    "date": "2026-11-16"
+  },
+  "lifecycles": [
+    {
+      "id": "meeting-life",
+      "name": "会議",
+      "domain": "recording",
+      "summary": "録音中の会議は1台に1つ。止めたら音声を圧縮して残す。",
+      "states": [
+        {
+          "id": "recording",
+          "name": "録音中",
+          "initial": true,
+          "changed": true
+        },
+        {
+          "id": "stopped",
+          "name": "止めた(圧縮中)",
+          "changed": true
+        },
+        {
+          "id": "saved",
+          "name": "保存した",
+          "final": true,
+          "changed": true
+        }
+      ],
+      "transitions": [
+        {
+          "from": "recording",
+          "on": "cmd-transcribe",
+          "to": "recording",
+          "changed": true
+        },
+        {
+          "from": "recording",
+          "on": "cmd-seal",
+          "to": "recording",
+          "changed": true
+        },
+        {
+          "from": "recording",
+          "on": "cmd-stop",
+          "to": "stopped",
+          "effect": "開いている区切りを閉じる",
+          "changed": true
+        },
+        {
+          "from": "stopped",
+          "on": "cmd-compress",
+          "to": "saved",
+          "changed": true
+        }
+      ],
+      "rejections": [
+        {
+          "state": "stopped",
+          "on": "cmd-stop",
+          "kind": "ignored",
+          "reason": "もう止めた",
+          "changed": true
+        },
+        {
+          "state": "saved",
+          "on": "cmd-stop",
+          "kind": "ignored",
+          "reason": "もう止めた",
+          "changed": true
+        },
+        {
+          "state": "stopped",
+          "on": "cmd-transcribe",
+          "kind": "ignored",
+          "reason": "止めた後に届いた文字起こしは、止める前の発言なら足す",
+          "changed": true
+        },
+        {
+          "state": "saved",
+          "on": "cmd-transcribe",
+          "kind": "invalid",
+          "reason": "保存した会議は変わらない",
+          "changed": true
+        },
+        {
+          "state": "stopped",
+          "on": "cmd-seal",
+          "kind": "ignored",
+          "reason": "止めるときに閉じ終えている",
+          "changed": true
+        },
+        {
+          "state": "saved",
+          "on": "cmd-seal",
+          "kind": "invalid",
+          "reason": "保存した会議は変わらない",
+          "changed": true
+        },
+        {
+          "state": "recording",
+          "on": "cmd-compress",
+          "kind": "invalid",
+          "reason": "録音中は圧縮しない",
+          "changed": true
+        },
+        {
+          "state": "saved",
+          "on": "cmd-compress",
+          "kind": "ignored",
+          "reason": "もう圧縮した",
+          "changed": true
+        }
+      ]
+    },
+    {
+      "id": "segment-life",
+      "name": "区切り",
+      "domain": "delivery",
+      "summary": "区切りは一度だけ受け取られ、届いたら二度と届けない。",
+      "states": [
+        {
+          "id": "sealed",
+          "name": "閉じた(届け待ち)",
+          "initial": true,
+          "changed": true
+        },
+        {
+          "id": "claimed",
+          "name": "受け取られた",
+          "changed": true
+        },
+        {
+          "id": "delivered",
+          "name": "届いた",
+          "final": true,
+          "changed": true
+        }
+      ],
+      "transitions": [
+        {
+          "from": "sealed",
+          "on": "cmd-deliver",
+          "to": "claimed",
+          "guard": "届け先のセッションのプラグイン",
+          "changed": true
+        },
+        {
+          "from": "claimed",
+          "on": "ev-delivered",
+          "to": "delivered",
+          "changed": true
+        },
+        {
+          "from": "claimed",
+          "on": "cmd-release",
+          "to": "sealed",
+          "guard": "受け取ってから30秒届かない",
+          "effect": "再送の印をつける",
+          "changed": true
+        }
+      ],
+      "rejections": [
+        {
+          "state": "claimed",
+          "on": "cmd-deliver",
+          "kind": "invalid",
+          "reason": "別の受け取りが進んでいる",
+          "changed": true
+        },
+        {
+          "state": "delivered",
+          "on": "cmd-deliver",
+          "kind": "invalid",
+          "reason": "もう届いた",
+          "changed": true
+        },
+        {
+          "state": "sealed",
+          "on": "ev-delivered",
+          "kind": "invalid",
+          "reason": "受け取らずに届いたことにはできない",
+          "changed": true
+        },
+        {
+          "state": "delivered",
+          "on": "ev-delivered",
+          "kind": "ignored",
+          "reason": "二度目の届いた知らせは無視する",
+          "changed": true
+        },
+        {
+          "state": "sealed",
+          "on": "cmd-release",
+          "kind": "ignored",
+          "reason": "受け取られていない",
+          "changed": true
+        },
+        {
+          "state": "delivered",
+          "on": "cmd-release",
+          "kind": "ignored",
+          "reason": "もう届いた",
+          "changed": true
+        }
+      ]
+    }
+  ]
+}

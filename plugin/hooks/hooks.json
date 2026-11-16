@@ -1,0 +1,4 @@
+{
+  "description": "meeting-voice: registers the meeting_voice tool and delivers meeting segments to this session (long poll to the local meeting-voice-mcp server).",
+  "modules": ["./register.ts"]
+}
