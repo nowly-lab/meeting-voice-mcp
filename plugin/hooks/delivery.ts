@@ -91,7 +91,7 @@ export function createLink(host: PluginHost) {
     return host.fetch(`http://127.0.0.1:${info.port}${path}`, { method: "POST", headers, body: JSON.stringify(body) });
   }
 
-  async function deliver(info: ServerInfo, d: Delivery) {
+  async function deliverSegments(info: ServerInfo, d: Delivery) {
     try {
       if (busy) {
         try {
@@ -136,7 +136,7 @@ export function createLink(host: PluginHost) {
         if (!res.ok) throw Error(`HTTP ${res.status}`);
         const delivery = (JSON.parse(res.text) as { delivery: Delivery | null }).delivery;
         backoffMs = 5_000;
-        if (delivery) await deliver(info, delivery);
+        if (delivery) await deliverSegments(info, delivery);
       } catch {
         backoffUntil = now + backoffMs;
         backoffMs = Math.min(60_000, backoffMs * 2);

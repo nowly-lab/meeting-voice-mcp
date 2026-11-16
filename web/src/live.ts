@@ -19,8 +19,8 @@ function sidebar(state: LiveState) {
 function checks(s: ServerStatus) {
   const model = s.model.state === "ready" ? ["ok", "ダウンロード済み"] : s.model.state === "downloading" ? ["ng", `ダウンロード中 ${s.model.total ? Math.floor((s.model.received / s.model.total) * 100) : 0}%`] : ["ng", "最初の録音で取得"];
   const rows: [string, string, string][] = [
-    ["マイクの許可", "ok", "録音開始時に確認"],
-    ["Macの音の許可", "ok", "録音開始時に確認"],
+    ["マイクの許可", "na", "録音開始時に確認"],
+    ["Macの音の許可", "na", "録音開始時に確認"],
     ["文字起こしモデル", model[0]!, model[1]!],
     ["Claude Codeプラグイン", s.plugin ? "ok" : "ng", s.plugin ? "● 接続中" : "未接続（get_new_utterances で読めます）"],
     ["Gemini", s.gemini ? "ok" : "ng", s.gemini ? "使える（GEMINI_API_KEY）" : "GEMINI_API_KEY なし"],
