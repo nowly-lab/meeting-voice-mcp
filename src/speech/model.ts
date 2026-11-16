@@ -87,10 +87,10 @@ async function download(file: ModelFile, dir: string, fetcher: typeof fetch, onB
 
 export async function ensureParakeetModel(
   dataDir: string,
-  opts: { files?: readonly ModelFile[]; fetch?: typeof fetch; onProgress?: (received: number, total: number) => void } = {},
+  opts: { files?: readonly ModelFile[]; directory?: string; fetch?: typeof fetch; onProgress?: (received: number, total: number) => void } = {},
 ): Promise<string> {
   const files = opts.files ?? PARAKEET_FILES;
-  const dir = join(dataDir, "models", PARAKEET_DIRECTORY);
+  const dir = join(dataDir, "models", opts.directory ?? PARAKEET_DIRECTORY);
   if (modelReady(dir, files)) return dir;
   mkdirSync(dir, { recursive: true, mode: 0o700 });
   rmSync(join(dir, MARKER), { force: true });
@@ -105,3 +105,7 @@ export async function ensureParakeetModel(
   writeFileSync(join(dir, MARKER), JSON.stringify(files.map(({ name, bytes, sha256 }) => ({ name, bytes, sha256 }))), { mode: 0o600 });
   return dir;
 }
+
+export const SILERO_FILES: readonly ModelFile[] = PARAKEET_FILES.filter((f) => f.name === "silero_vad.onnx");
+export const SILERO_DIRECTORY = "silero-vad";
+export const parakeetDir = (dataDir: string) => join(dataDir, "models", PARAKEET_DIRECTORY);
