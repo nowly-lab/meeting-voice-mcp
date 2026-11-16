@@ -183,12 +183,18 @@
       "changed": true,
       "invariants": [
         "発言は自分側(mic)か相手側(system)のどちらか",
-        "スピーカーの音をマイクが拾った発言(3秒以内の相手側とほぼ同じ文字)は自分側から外し、外した印を残す"
+        "スピーカーの音をマイクが拾った発言(3秒以内の相手側とほぼ同じ文字)は自分側から外し、外した印を残す",
+        "取り込みが遅れて保存できなかった音声は、側と時間の範囲を「音声の欠け」として会議に残し、画面と状態に出す"
       ],
       "evidence": [
         {
           "path": "src/meeting/recorder.ts",
           "symbol": "addUtterance",
+          "role": "rule"
+        },
+        {
+          "path": "src/meeting/recorder.ts",
+          "symbol": "recordGap",
           "role": "rule"
         }
       ]

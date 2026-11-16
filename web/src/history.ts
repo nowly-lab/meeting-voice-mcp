@@ -22,7 +22,8 @@ export function renderHistory(root: HTMLElement, list: MeetingMeta[], selected: 
     main.append(el("h1", {}, d.meta.title), el("div", { class: "meta" },
       el("span", {}, `${new Date(d.meta.startedAt).toLocaleString("ja-JP", { hour12: false })}${d.meta.endedAt ? `–${new Date(d.meta.endedAt).toLocaleTimeString("ja-JP", { hour12: false })}` : ""}`),
       el("span", { class: "chip" }, d.meta.engine === "gemini" ? "Gemini" : "Parakeet"), el("span", { class: "chip" }, `${d.segments.length}区切り`),
-      d.meta.interrupted ? el("span", { class: "chip" }, "中断して保存") : null));
+      d.meta.interrupted ? el("span", { class: "chip" }, "中断して保存") : null,
+      d.meta.audioGaps?.length ? el("span", { class: "chip warn", title: "取り込みが遅れて保存できなかった音声があります" }, `音声の欠け ${(d.meta.audioGaps.reduce((t, g) => t + g.toMs - g.fromMs, 0) / 1000).toFixed(1)}秒`) : null));
     const players: Partial<Record<"mic" | "system", HTMLAudioElement>> = {};
     for (const s of ["mic", "system"] as const) {
       if (!d.audio[s]) continue;

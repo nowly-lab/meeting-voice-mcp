@@ -2,8 +2,8 @@ export const nonce = document.body.dataset.nonce ?? "";
 
 export type Side = "mic" | "system";
 export type Utterance = { seq: number; id: string; side: Side; startMs: number; endMs: number; text: string; echoOf?: string };
-export type MeetingMeta = { id: string; title: string; startedAt: string; endedAt?: string; engine: "parakeet" | "gemini"; status: "recording" | "stopped" | "saved"; agentSession: string | null; interrupted?: boolean; excerpts?: string[] };
-export type RecordingStatus = { meetingId: string | null; title: string | null; elapsedMs: number; engine: string | null; sources: Record<Side, "ok" | "denied" | "off">; levels: Record<Side, number>; pending: number; target: string | null; error: string | null };
+export type MeetingMeta = { id: string; title: string; startedAt: string; endedAt?: string; engine: "parakeet" | "gemini"; status: "recording" | "stopped" | "saved"; agentSession: string | null; interrupted?: boolean; excerpts?: string[]; audioGaps?: { side: Side; fromMs: number; toMs: number }[] };
+export type RecordingStatus = { meetingId: string | null; title: string | null; elapsedMs: number; engine: string | null; sources: Record<Side, "ok" | "denied" | "off">; levels: Record<Side, number>; pending: number; target: string | null; error: string | null; audioGaps: { side: Side; fromMs: number; toMs: number }[] };
 export type ServerStatus = { version: string; recording: RecordingStatus; model: { state: string; received: number; total: number }; gemini: boolean; plugin: boolean };
 export type SegmentInfo = { segment: number; utteranceSeqs: number[]; sealedAt: string; deliveredAt: string | null };
 export type MeetingDetail = { meta: MeetingMeta; utterances: Utterance[]; segments: SegmentInfo[]; states: { segment: number; state: "sealed" | "claimed" | "delivered"; resent: boolean }[]; audio: Record<Side, "m4a" | "wav" | null> };

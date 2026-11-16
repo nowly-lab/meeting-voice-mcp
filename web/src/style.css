@@ -16,6 +16,7 @@ body { margin:0; font-family: -apple-system, "Hiragino Sans", "Noto Sans JP", sy
 .main { padding:24px 32px; overflow:auto; }
 h1 { font-size:26px; margin:0 0 10px; }
 .meta { display:flex; gap:12px; align-items:center; flex-wrap:wrap; color:var(--muted); font-size:14px; margin-bottom:16px; }
+.chip.warn { background:var(--amber-soft); color:var(--amber); }
 .chip { background:var(--chip); padding:3px 10px; border-radius:6px; font-size:13px; color:var(--fg); }
 .rec { color:var(--red); background:var(--red-soft); padding:3px 10px; border-radius:999px; font-weight:600; }
 .rec::before { content:"● "; }

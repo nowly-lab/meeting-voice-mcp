@@ -208,3 +208,26 @@ test("R2-1: a chunk fully inside already-written time is dropped from both audio
   assert.equal(sampleAt(wav, 550), 0);
   assert.equal(s.recorder.status().meetingId, null);
 });
+
+test("R3-1: real PCM dropped behind idle silence is recorded as an audio gap, in status and after reload", async () => {
+  const s = setup2();
+  const t0 = s.now();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.at(t0 + 2000);
+  s.on().pcm("system", tone(100, 2000), 500);    // wholly behind the cursor: 100 ms lost
+  s.on().pcm("system", tone(100, 2000), 1650);   // partly behind: 50 ms lost
+  assert.deepEqual(s.recorder.status().audioGaps, [{ side: "system", fromMs: 500, toMs: 600 }, { side: "system", fromMs: 1650, toMs: 1700 }]);
+  await s.recorder.stop();
+  const reread = new MeetingStore(s.store.dataDir).readMeta(m.id);
+  assert.deepEqual(reread.audioGaps, [{ side: "system", fromMs: 500, toMs: 600 }, { side: "system", fromMs: 1650, toMs: 1700 }]);
+});
+
+test("R3-1: contiguous chunks record no gap", async () => {
+  const s = setup2();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.on().pcm("system", tone(100, 1000), 100);
+  await s.recorder.stop();
+  assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
+});

@@ -121,6 +121,25 @@
         "agg-meeting"
       ],
       "changed": true
+    },
+    {
+      "term": "音声の欠け",
+      "meaning": "録音部品からの音声が遅れて届き、無音で埋めた後だったため保存も文字起こしもできなかった範囲。側と開始・終了の時刻を会議に残し、録音中の画面と履歴に出す。",
+      "code": [
+        "audioGaps",
+        "recordGap"
+      ],
+      "nodes": [
+        "agg-meeting-2"
+      ],
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/store/store.ts",
+          "symbol": "audioGaps",
+          "role": "persistence"
+        }
+      ]
     }
   ]
 }

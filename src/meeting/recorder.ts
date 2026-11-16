@@ -24,7 +24,9 @@ export type RecordingStatus = {
   pending: number;
   target: string | null;
   error: string | null;
+  audioGaps: AudioGap[];
 };
+export type AudioGap = { side: Side; fromMs: number; toMs: number };
 export type LiveEvent =
   | { type: "status"; status: RecordingStatus }
   | { type: "utterance"; meetingId: string; utterance: Utterance }
@@ -75,6 +77,7 @@ type Active = {
   /** Capture time (ms since capture started) up to which each side's audio has been written / fed. */
   written: Record<Side, number>;
   stopping: boolean;
+  gaps: AudioGap[];
 };
 
 export class Recorder {
@@ -145,6 +148,7 @@ export class Recorder {
         error: null,
         written: { mic: 0, system: 0 },
         stopping: false,
+        gaps: [],
       };
       ref = active;
       this.deps.bridge.setTarget(meta.id, input.agentSession);
@@ -214,7 +218,10 @@ export class Recorder {
     let data = chunk;
     let at = atMs;
     if (at < cursor) {
+      // Real audio that idle silence already covered: it cannot be kept on the timeline, so it is recorded as lost.
       const skipBytes = Math.round((cursor - at) * BYTES_PER_MS / 2) * 2;
+      const lostTo = Math.min(cursor, at + chunk.length / BYTES_PER_MS);
+      this.recordGap(a, { side, fromMs: Math.round(at), toMs: Math.round(lostTo) });
       if (skipBytes >= data.length) return;
       data = data.subarray(skipBytes);
       at = cursor;
@@ -248,6 +255,14 @@ export class Recorder {
     });
     this.deps.bridge.enqueue(meetingId, s);
     this.deps.events({ type: "segment", meetingId, segment: s.segment, utteranceSeqs: s.utterances.map((u) => u.seq) });
+  }
+
+  private recordGap(a: Active, gap: AudioGap) {
+    const last = a.gaps.at(-1);
+    if (last && last.side === gap.side && gap.fromMs <= last.toMs) last.toMs = Math.max(last.toMs, gap.toMs);
+    else if (a.gaps.length < 1000) a.gaps.push(gap);
+    a.meta = this.deps.store.updateMeeting(a.meta.id, { audioGaps: a.gaps });
+    this.emitStatus();
   }
 
   stop(): Promise<MeetingMeta> {
@@ -347,6 +362,7 @@ export class Recorder {
       pending: pending.count,
       target: pending.target,
       error: a?.error ?? null,
+      audioGaps: a ? a.gaps.map((g) => ({ ...g })) : [],
     };
   }
 

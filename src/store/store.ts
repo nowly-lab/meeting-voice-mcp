@@ -30,6 +30,8 @@ export const MeetingMetaSchema = z.object({
   silenceSeconds: z.number(),
   status: z.enum(["recording", "stopped", "saved"]),
   interrupted: z.boolean().optional(),
+  /** Real audio that arrived behind already-written idle silence and could not be kept (capture time, ms). */
+  audioGaps: z.array(z.object({ side: z.enum(["mic", "system"]), fromMs: z.number(), toMs: z.number() })).max(1000).optional(),
 });
 export type MeetingMeta = z.infer<typeof MeetingMetaSchema>;
 

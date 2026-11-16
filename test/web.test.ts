@@ -135,3 +135,12 @@ test("F7: a #meeting= link opens that meeting in history", { skip }, async () =>
   assert.equal(await page.locator("[data-tab=history]").getAttribute("aria-selected"), "true");
   await page.close(); await s.close();
 });
+
+test("R3-1: history shows the missing-audio mark for a meeting with audio gaps", { skip }, async () => {
+  const { s } = await boot();
+  const m = s.store.createMeeting({ title: "欠けのある会議", startedAt: new Date().toISOString(), engine: "parakeet", language: "ja", instructions: "", agentSession: null, silenceSeconds: 3 });
+  s.store.updateMeeting(m.id, { status: "saved", endedAt: new Date().toISOString(), audioGaps: [{ side: "system", fromMs: 500, toMs: 2600 }] });
+  const page = await open(s, `#history=${m.id}`);
+  await page.getByText("音声の欠け 2.1秒").waitFor({ timeout: 5000 });
+  await page.close(); await s.close();
+});

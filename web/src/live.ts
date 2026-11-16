@@ -45,6 +45,10 @@ export function renderLive(root: HTMLElement, state: LiveState): void {
     } else if (rec.error) {
       main.append(el("div", { class: "banner err", role: "alert" }, el("b", {}, "エラー"), rec.error));
     }
+    if (rec.audioGaps.length) {
+      const ms = rec.audioGaps.reduce((t, g) => t + g.toMs - g.fromMs, 0);
+      main.append(el("div", { class: "banner", role: "status" }, el("b", {}, `音声の欠け ${(ms / 1000).toFixed(1)}秒`), "取り込みが遅れた音声を保存できませんでした。その間の発言は文字起こしされていません。"));
+    }
     if (!rec.target && rec.pending > 0) main.append(el("div", { class: "banner" }, el("b", {}, `届け先なし（${rec.pending} 件待ち）`), "Claude Code のセッションで take_delivery を呼ぶと、待っている区切りが届きます。"));
     const meter = (side: Side, label: string) => {
       const bar = el("div", { class: "bar" }, el("i", { style: `width:${Math.min(100, Math.round((rec.levels[side] ?? 0) * 400))}%` }));
