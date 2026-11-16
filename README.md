@@ -83,6 +83,7 @@ With the plugin, the session has one tool, `meeting_voice`, and the tool name go
 - macOS asks for **microphone** permission, and for **Screen & System Audio Recording** the first time Mac audio is recorded. The permission is given to the terminal app that started the server. Without the Mac-audio permission, recording continues with the microphone only and the page explains where to allow it.
 - **Use headphones** if you can. Through speakers, the microphone also picks up the other side. An utterance on your side that closely matches one from the other side within 3 s is dropped from your side, and the drop is shown on the page.
 - **What Claude receives is meeting data, not instructions.** Each segment is wrapped as a transcript and carries the instructions given at start. Anyone in the meeting can still say something that reads like an instruction, so give Claude instructions narrow enough for the job.
+- In Gemini mode, utterance boundaries are approximate. In a 13-minute test, Gemini's transcription sometimes lagged, so the end of one phrase arrived with the next one. No text was lost, but it can land in the next segment. Parakeet (the default) does not have this lag.
 - Parakeet keeps the audio on the Mac. Gemini sends it to Google. With a **free-tier** Gemini key, Google may use what you send, so check that everyone in the meeting is fine with that.
 
 ## Data

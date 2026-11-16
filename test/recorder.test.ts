@@ -172,3 +172,39 @@ test("Q1+F3: fed silence is also in the saved audio, so later chunks stay on the
   const seconds = readFileSync(s.store.audioPath(m.id, "system", "wav")).readUInt32LE(40) / 32000;
   assert.ok(Math.abs(seconds - 3.1) < 0.01, `duration ${seconds}`);
 });
+
+const tone = (ms: number, value: number) => { const b = Buffer.alloc(ms * 32); for (let i = 0; i < b.length / 2; i++) b.writeInt16LE(value, i * 2); return b; };
+const sampleAt = (wav: Buffer, ms: number) => wav.readInt16LE(44 + Math.floor(ms * 16) * 2);
+
+test("R2-1: idle silence keeps a margin, and a late chunk is trimmed to the cursor (no drift)", async () => {
+  const s = setup2();
+  const t0 = s.now();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.at(t0 + 2000); // silence fed up to 2000 - 300 = 1700
+  s.on().pcm("system", tone(100, 2000), 1650); // overlaps 1650-1700: only 1700-1750 is kept
+  s.on().pcm("system", tone(100, 3000), 1750);
+  await s.recorder.stop();
+  const wav = readFileSync(s.store.audioPath(m.id, "system", "wav"));
+  assert.equal(wav.readUInt32LE(40) / 32, 1850, "timeline ends at 1850 ms");
+  assert.equal(sampleAt(wav, 50), 1000);
+  assert.equal(sampleAt(wav, 1000), 0);
+  assert.equal(sampleAt(wav, 1720), 2000);
+  assert.equal(sampleAt(wav, 1800), 3000);
+  const engine = s.writes.filter((w) => w.side === "system").map((w) => [w.atMs, w.bytes / 32]);
+  assert.deepEqual(engine, [[0, 100], [100, 1600], [1700, 50], [1750, 100]]);
+});
+
+test("R2-1: a chunk fully inside already-written time is dropped from both audio and engine", async () => {
+  const s = setup2();
+  const t0 = s.now();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.at(t0 + 2000);
+  s.on().pcm("system", tone(100, 2000), 500);
+  await s.recorder.stop();
+  const wav = readFileSync(s.store.audioPath(m.id, "system", "wav"));
+  assert.equal(wav.readUInt32LE(40) / 32, 1700);
+  assert.equal(sampleAt(wav, 550), 0);
+  assert.equal(s.recorder.status().meetingId, null);
+});

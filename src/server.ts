@@ -3,7 +3,7 @@
 // from server.json there. Page APIs need the per-page nonce and only read.
 import { spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
-import { closeSync, createReadStream, existsSync, mkdirSync, openSync, readFileSync, rmSync, statSync, writeSync } from "node:fs";
+import { closeSync, constants as fsConstants, createReadStream, existsSync, ftruncateSync, mkdirSync, openSync, readFileSync, statSync, writeSync } from "node:fs";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { extname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -120,45 +120,41 @@ export class AlreadyRunning extends Error {
   readonly code = "ALREADY_RUNNING";
 }
 
-function alive(pid: number) {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
+// macOS open(2) flag: take an exclusive flock-style lock atomically with the open (not exported by Node).
+const O_EXLOCK = 0x20;
 
-/** One server per data folder: an exclusive lock file holding the owner's pid and a random id. */
+/**
+ * One server per data folder. The kernel holds the lock: it is taken atomically with the open and released
+ * when the owning process exits, however it exits, so there is no stale lock to reclaim and nothing to steal.
+ * The pid written inside is information only.
+ */
 export function acquireServerLock(dataDir: string): () => void {
   mkdirSync(dataDir, { recursive: true, mode: 0o700 });
   const file = join(dataDir, "server.lock");
-  const owner = randomUUID();
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      const fd = openSync(file, "wx", 0o600);
-      writeSync(fd, JSON.stringify({ pid: process.pid, owner }));
-      closeSync(fd);
-      return () => {
-        try {
-          if (JSON.parse(readFileSync(file, "utf8")).owner === owner) rmSync(file, { force: true });
-        } catch {
-          /* already gone */
-        }
-      };
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      let holder = 0;
+  let fd: number;
+  try {
+    fd = openSync(file, fsConstants.O_RDWR | fsConstants.O_CREAT | O_EXLOCK | fsConstants.O_NONBLOCK, 0o600);
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "EAGAIN" || code === "EWOULDBLOCK") {
+      let holder = "";
       try {
-        holder = Number(JSON.parse(readFileSync(file, "utf8")).pid) || 0;
+        holder = ` (pid ${Number(JSON.parse(readFileSync(file, "utf8")).pid) || "?"})`;
       } catch {
-        holder = 0;
+        holder = "";
       }
-      if (holder && alive(holder)) throw new AlreadyRunning(`meeting-voice-mcp is already running for this data folder (pid ${holder}).`);
-      rmSync(file, { force: true });
+      throw new AlreadyRunning(`meeting-voice-mcp is already running for this data folder${holder}.`);
     }
+    throw error;
   }
-  throw new AlreadyRunning("meeting-voice-mcp is already running for this data folder.");
+  ftruncateSync(fd, 0);
+  writeSync(fd, JSON.stringify({ pid: process.pid }), 0);
+  let released = false;
+  return () => {
+    if (released) return;
+    released = true;
+    closeSync(fd);
+  };
 }
 
 export async function startServer(opts: ServerOptions): Promise<RunningServer> {

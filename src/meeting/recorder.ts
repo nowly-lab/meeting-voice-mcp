@@ -190,10 +190,11 @@ export class Recorder {
     if (!a) return;
     const now = this.deps.clock() - a.startedClock;
     // A process tap sends nothing while no app plays. Feed silence so the VAD can end the last utterance.
+    // Fill only up to now minus the margin, so real PCM that is merely a little late is not covered.
     for (const side of ["mic", "system"] as const) {
       if (a.sources[side] !== "ok" || a.written[side] === 0) continue;
-      const gap = now - a.written[side];
-      if (gap > IDLE_FEED_AFTER_MS) {
+      const gap = now - IDLE_FEED_AFTER_MS - a.written[side];
+      if (gap > 0) {
         const ms = Math.floor(gap);
         const silence = Buffer.alloc(ms * BYTES_PER_MS);
         a.wav[side]?.write(silence);
@@ -205,13 +206,25 @@ export class Recorder {
   }
 
   /** Writes PCM on the capture timeline: a gap before `atMs` becomes silence in the saved audio too. */
+  // One cursor per side: the saved audio and the engine get exactly the same samples. A chunk that starts
+  // before the cursor (it was covered by idle silence) is trimmed to the cursor; one wholly before it is dropped.
   private writeAudio(a: Active, side: Side, chunk: Buffer, atMs: number) {
     const wav = a.wav[side];
-    const gap = Math.min(MAX_PAD_MS, Math.floor(atMs - a.written[side]));
-    if (gap > 0 && wav) wav.write(Buffer.alloc(gap * BYTES_PER_MS));
-    wav?.write(chunk);
-    a.engine.write(side, chunk, atMs);
-    a.written[side] = Math.max(a.written[side], atMs + chunk.length / BYTES_PER_MS);
+    const cursor = a.written[side];
+    let data = chunk;
+    let at = atMs;
+    if (at < cursor) {
+      const skipBytes = Math.round((cursor - at) * BYTES_PER_MS / 2) * 2;
+      if (skipBytes >= data.length) return;
+      data = data.subarray(skipBytes);
+      at = cursor;
+    } else if (at > cursor) {
+      const gapMs = Math.min(MAX_PAD_MS, at - cursor);
+      wav?.write(Buffer.alloc(Math.round(gapMs * BYTES_PER_MS / 2) * 2));
+    }
+    wav?.write(data);
+    a.engine.write(side, data, at);
+    a.written[side] = at + data.length / BYTES_PER_MS;
   }
 
   addUtterance(u: Omit<Utterance, "seq" | "id">): void {

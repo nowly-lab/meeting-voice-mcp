@@ -108,3 +108,44 @@ test("F7: open_page links open the meeting in history", async () => {
   assert.match(JSON.stringify(r.content), /#history=11111111-1111-4111-8111-111111111111/);
   await c.close(); await s.close();
 });
+
+import { spawn } from "node:child_process";
+import { fileURLToPath } from "node:url";
+const holder = fileURLToPath(new URL("./fixtures/hold-lock.ts", import.meta.url));
+function child(dataDir: string) {
+  const p = spawn(process.execPath, [holder, dataDir], { stdio: ["ignore", "pipe", "inherit"] });
+  const first = new Promise<string>((r) => p.stdout.once("data", (d) => r(String(d).trim())));
+  return { p, first };
+}
+
+test("R2-2: another process holding the lock refuses this server; its death frees the lock", async () => {
+  const hw = fakeHardware();
+  const dataDir = mkdtempSync(join(tmpdir(), "mv-lock-"));
+  const c = child(dataDir);
+  assert.equal(await c.first, "held");
+  await assert.rejects(startServer({ dataDir, env: {}, capture: hw.capture, engines: hw.engines, openUrl: () => {} }), /already running/);
+  c.p.kill("SIGKILL");
+  await new Promise((r) => c.p.once("exit", r));
+  const s = await startServer({ dataDir, env: {}, capture: hw.capture, engines: hw.engines, openUrl: () => {} });
+  await s.close();
+});
+
+test("R2-2: of several processes racing for the lock, exactly one holds it", async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), "mv-lock-"));
+  const kids = [0, 1, 2, 3].map(() => child(dataDir));
+  const answers = await Promise.all(kids.map((k) => k.first));
+  for (const k of kids) k.p.kill("SIGKILL");
+  assert.equal(answers.filter((a) => a === "held").length, 1, answers.join(","));
+});
+
+test("R2-2: a lock being initialized (empty metadata) is not stolen", async () => {
+  const hw = fakeHardware();
+  const dataDir = mkdtempSync(join(tmpdir(), "mv-lock-"));
+  const p = spawn(process.execPath, [fileURLToPath(new URL("./fixtures/hold-empty-lock.mjs", import.meta.url)), dataDir], { stdio: ["ignore", "pipe", "inherit"] });
+  assert.equal(await new Promise<string>((r) => p.stdout.once("data", (d) => r(String(d).trim()))), "held");
+  try {
+    await assert.rejects(startServer({ dataDir, env: {}, capture: hw.capture, engines: hw.engines, openUrl: () => {} }), /already running/);
+  } finally {
+    p.kill("SIGKILL");
+  }
+});
