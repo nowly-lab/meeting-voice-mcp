@@ -1,0 +1,824 @@
+{
+  "schema": "big-picture/v1",
+  "title": "全体像",
+  "product": "meeting-voice-mcp",
+  "summary": "会議のマイクと Mac の音を文字にし、沈黙で区切って録音を始めた Claude Code セッションへ届ける。Claude はそれを読んで event-storming-mcp の図を直す。",
+  "checked": {
+    "revision": "planned",
+    "date": "2026-11-16"
+  },
+  "domains": [
+    {
+      "id": "recording",
+      "name": "録音",
+      "note": "Claude が MCP で録音を始め、2本の音を文字にする"
+    },
+    {
+      "id": "segment",
+      "name": "区切り",
+      "note": "無音を見て発言をまとめる"
+    },
+    {
+      "id": "delivery",
+      "name": "届ける",
+      "note": "録音を始めたセッションへ区切りを届け、Claude が図を直す"
+    },
+    {
+      "id": "closing",
+      "name": "止めて残す",
+      "note": "録音を止め、音声を圧縮して履歴に残す"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "agent-start",
+      "type": "actor",
+      "domain": "recording",
+      "text": "会議のエージェント(Claude)",
+      "changed": true
+    },
+    {
+      "id": "cmd-start",
+      "type": "command",
+      "domain": "recording",
+      "text": "録音を始める",
+      "changed": true,
+      "note": "MCP start_recording(title, instructions, engine, sources, silence_seconds)。プラグイン経由ならセッション ID がつく",
+      "evidence": [
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "start_recording",
+          "role": "entry"
+        },
+        {
+          "path": "plugin/hooks/register.ts",
+          "symbol": "meeting_voice",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "ext-capture",
+      "type": "external",
+      "domain": "recording",
+      "text": "録音部品(Core Audio)",
+      "changed": true,
+      "attach": {
+        "to": "cmd-start",
+        "pos": "above"
+      },
+      "note": "ai-silent-meeting-bot の Swift を移した部品。マイクと Mac の音(プロセスタップ)を 16 kHz モノラルで出す",
+      "evidence": [
+        {
+          "path": "native/AudioCapture.swift",
+          "symbol": "AudioHardwareCreateProcessTap",
+          "role": "source"
+        },
+        {
+          "path": "src/capture/helper.ts",
+          "symbol": "startCapture",
+          "role": "contract"
+        }
+      ]
+    },
+    {
+      "id": "hs-permission",
+      "type": "hotspot",
+      "domain": "recording",
+      "text": "許可はサーバーを起動したターミナルのアプリに出る。裏で起動したサーバーで許可がどのアプリにつくかは実機で確かめる",
+      "changed": true,
+      "attach": {
+        "to": "cmd-start",
+        "pos": "below"
+      }
+    },
+    {
+      "id": "agg-meeting",
+      "type": "aggregate",
+      "domain": "recording",
+      "text": "会議",
+      "changed": true,
+      "invariants": [
+        "録音中の会議は1台に1つ(録音中に始めようとしたら、録音中の会議を示して断る)",
+        "発言の通し番号は会議の中で増えるだけ",
+        "Mac の音の許可がなくてもマイクだけで続ける",
+        "発言は書いた順に utterances.jsonl へ追記し、書き換えない"
+      ],
+      "evidence": [
+        {
+          "path": "src/meeting/recorder.ts",
+          "symbol": "Recorder",
+          "role": "rule"
+        },
+        {
+          "path": "src/store/store.ts",
+          "symbol": "MeetingStore",
+          "role": "persistence"
+        }
+      ]
+    },
+    {
+      "id": "ev-started",
+      "type": "event",
+      "domain": "recording",
+      "text": "録音を始めた",
+      "changed": true
+    },
+    {
+      "id": "pol-utterance",
+      "type": "policy",
+      "domain": "recording",
+      "text": "発言が無音で切れたら",
+      "changed": true,
+      "execution": "async",
+      "note": "Silero VAD(0.4 秒の無音)。Gemini では Live の文字起こしが届いたとき"
+    },
+    {
+      "id": "cmd-transcribe",
+      "type": "command",
+      "domain": "recording",
+      "text": "発言を文字にする",
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/speech/parakeet.ts",
+          "symbol": "createParakeet",
+          "role": "source"
+        },
+        {
+          "path": "src/speech/gemini-live.ts",
+          "symbol": "createGeminiLive",
+          "role": "source"
+        }
+      ]
+    },
+    {
+      "id": "ext-gemini",
+      "type": "external",
+      "domain": "recording",
+      "text": "Gemini Live",
+      "changed": true,
+      "attach": {
+        "to": "cmd-transcribe",
+        "pos": "above"
+      },
+      "note": "GEMINI_API_KEY。mic と system で別のセッション、inputAudioTranscription、セッション再開と文脈の圧縮"
+    },
+    {
+      "id": "hs-gemini",
+      "type": "hotspot",
+      "domain": "recording",
+      "text": "Gemini Live で応答を出させずに文字起こしだけ得る設定と、モデル名はスパイクで決める",
+      "changed": true,
+      "attach": {
+        "to": "cmd-transcribe",
+        "pos": "below"
+      }
+    },
+    {
+      "id": "agg-meeting-2",
+      "type": "aggregate",
+      "domain": "recording",
+      "text": "会議",
+      "changed": true,
+      "invariants": [
+        "発言は自分側(mic)か相手側(system)のどちらか",
+        "スピーカーの音をマイクが拾った発言(3秒以内の相手側とほぼ同じ文字)は自分側から外し、外した印を残す"
+      ],
+      "evidence": [
+        {
+          "path": "src/meeting/recorder.ts",
+          "symbol": "addUtterance",
+          "role": "rule"
+        }
+      ]
+    },
+    {
+      "id": "ev-utterance",
+      "type": "event",
+      "domain": "recording",
+      "text": "発言を文字にした",
+      "changed": true
+    },
+    {
+      "id": "pol-silence",
+      "type": "policy",
+      "domain": "segment",
+      "text": "両方の音が無音のまま既定3秒たったら",
+      "changed": true,
+      "execution": "async",
+      "note": "確定した発言が1つ以上たまっているとき。Gemini では最後の発言の文字を最大5秒待つ",
+      "evidence": [
+        {
+          "path": "src/segment/segmenter.ts",
+          "symbol": "Segmenter",
+          "role": "rule"
+        }
+      ]
+    },
+    {
+      "id": "pol-force",
+      "type": "policy",
+      "domain": "segment",
+      "text": "区切りがないまま60秒たったら",
+      "changed": true,
+      "execution": "scheduled"
+    },
+    {
+      "id": "cmd-seal",
+      "type": "command",
+      "domain": "segment",
+      "text": "区切りを閉じる",
+      "changed": true
+    },
+    {
+      "id": "agg-segment",
+      "type": "aggregate",
+      "domain": "segment",
+      "text": "区切り",
+      "changed": true,
+      "invariants": [
+        "発言はちょうど1つの区切りに入る",
+        "閉じた区切りの中身は変わらない",
+        "区切りの番号は会議の中で1から順に増える"
+      ],
+      "evidence": [
+        {
+          "path": "src/segment/segmenter.ts",
+          "symbol": "sealSegment",
+          "role": "rule"
+        },
+        {
+          "path": "src/store/store.ts",
+          "symbol": "appendSegmentEvent",
+          "role": "persistence"
+        }
+      ]
+    },
+    {
+      "id": "ev-sealed",
+      "type": "event",
+      "domain": "segment",
+      "text": "区切りを閉じた",
+      "changed": true
+    },
+    {
+      "id": "pol-deliver",
+      "type": "policy",
+      "domain": "delivery",
+      "text": "録音を始めたセッションのプラグインが受け取りに来たら",
+      "changed": true,
+      "execution": "external",
+      "note": "プラグインが /api/bridge/poll で長くポーリングし、手が空いていれば新しい発言として、作業中なら次の一歩に差し込む。たまった区切りは1通にまとめる",
+      "evidence": [
+        {
+          "path": "src/bridge/bridge.ts",
+          "symbol": "DeliveryBridge",
+          "role": "contract"
+        },
+        {
+          "path": "plugin/hooks/delivery.ts",
+          "symbol": "deliverSegments",
+          "role": "consumer"
+        }
+      ]
+    },
+    {
+      "id": "cmd-deliver",
+      "type": "command",
+      "domain": "delivery",
+      "text": "区切りを届ける",
+      "changed": true
+    },
+    {
+      "id": "hs-injection",
+      "type": "hotspot",
+      "domain": "delivery",
+      "text": "話された言葉はデータとして渡す。届ける文は「会議の文字起こし(データ)」と録音開始時の指示で包むが、Claude が従わない場合は防げない",
+      "changed": true,
+      "attach": {
+        "to": "cmd-deliver",
+        "pos": "below"
+      }
+    },
+    {
+      "id": "agg-segment-2",
+      "type": "aggregate",
+      "domain": "delivery",
+      "text": "区切り",
+      "changed": true,
+      "invariants": [
+        "区切りは一度だけ受け取られる(claim)",
+        "受け取ったまま30秒届かなければ、また受け取れる",
+        "届いたことを記録した区切りは二度と届けない"
+      ],
+      "evidence": [
+        {
+          "path": "src/bridge/bridge.ts",
+          "symbol": "claim",
+          "role": "rule"
+        }
+      ]
+    },
+    {
+      "id": "ev-delivered",
+      "type": "event",
+      "domain": "delivery",
+      "text": "Claudeに届けた",
+      "changed": true
+    },
+    {
+      "id": "rm-segment",
+      "type": "readModel",
+      "domain": "delivery",
+      "text": "届いた区切りと録音開始時の指示",
+      "changed": true
+    },
+    {
+      "id": "agent-board",
+      "type": "actor",
+      "domain": "delivery",
+      "text": "会議のエージェント(Claude)",
+      "changed": true
+    },
+    {
+      "id": "cmd-fix-board",
+      "type": "command",
+      "domain": "delivery",
+      "text": "図を直す",
+      "changed": true,
+      "note": "event-storming-mcp の apply_changes。meeting-voice-mcp とは直接つながらない"
+    },
+    {
+      "id": "ext-es",
+      "type": "external",
+      "domain": "delivery",
+      "text": "event-storming-mcp",
+      "changed": true,
+      "attach": {
+        "to": "cmd-fix-board",
+        "pos": "above"
+      }
+    },
+    {
+      "id": "ev-board-fixed",
+      "type": "event",
+      "domain": "delivery",
+      "text": "図を直した",
+      "changed": true
+    },
+    {
+      "id": "agent-other",
+      "type": "actor",
+      "domain": "delivery",
+      "text": "プラグインのないエージェント",
+      "changed": true
+    },
+    {
+      "id": "rm-new",
+      "type": "readModel",
+      "domain": "delivery",
+      "text": "新しい発言",
+      "changed": true,
+      "attach": {
+        "to": "agent-other",
+        "pos": "above"
+      },
+      "note": "get_new_utterances(after_seq)"
+    },
+    {
+      "id": "cmd-pull",
+      "type": "command",
+      "domain": "delivery",
+      "text": "新しい発言を取る",
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "get_new_utterances",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "ev-pulled",
+      "type": "event",
+      "domain": "delivery",
+      "text": "新しい発言を渡した",
+      "changed": true
+    },
+    {
+      "id": "pol-claim-timeout",
+      "type": "policy",
+      "domain": "delivery",
+      "text": "受け取ってから30秒届いた知らせがなければ",
+      "changed": true,
+      "execution": "scheduled"
+    },
+    {
+      "id": "cmd-release",
+      "type": "command",
+      "domain": "delivery",
+      "text": "受け取りを外す",
+      "changed": true,
+      "note": "次の受け取りでは「再送(届いていない可能性)」と添えて届ける",
+      "evidence": [
+        {
+          "path": "src/bridge/bridge.ts",
+          "symbol": "releaseExpiredClaims",
+          "role": "rule"
+        }
+      ]
+    },
+    {
+      "id": "agg-segment-3",
+      "type": "aggregate",
+      "domain": "delivery",
+      "text": "区切り",
+      "changed": true,
+      "invariants": [
+        "外した区切りは再送の印をつけて、また受け取れる"
+      ]
+    },
+    {
+      "id": "ev-released",
+      "type": "event",
+      "domain": "delivery",
+      "text": "受け取りを外した",
+      "changed": true
+    },
+    {
+      "id": "agent-retarget",
+      "type": "actor",
+      "domain": "delivery",
+      "text": "別のセッションの Claude",
+      "changed": true
+    },
+    {
+      "id": "cmd-retarget",
+      "type": "command",
+      "domain": "delivery",
+      "text": "届け先を自分にする",
+      "changed": true,
+      "note": "MCP take_delivery。始めたセッションを閉じた、stdio から始めたなどで届け先がないとき",
+      "evidence": [
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "take_delivery",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "agg-meeting-5",
+      "type": "aggregate",
+      "domain": "delivery",
+      "text": "会議",
+      "changed": true,
+      "invariants": [
+        "届け先は1つのセッションだけ",
+        "届け先がない間の区切りは閉じたまま待つ"
+      ]
+    },
+    {
+      "id": "ev-retargeted",
+      "type": "event",
+      "domain": "delivery",
+      "text": "届け先を変えた",
+      "changed": true
+    },
+    {
+      "id": "agent-stop",
+      "type": "actor",
+      "domain": "closing",
+      "text": "会議のエージェント(Claude)",
+      "changed": true
+    },
+    {
+      "id": "cmd-stop",
+      "type": "command",
+      "domain": "closing",
+      "text": "録音を止める",
+      "changed": true,
+      "evidence": [
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "stop_recording",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "agg-meeting-3",
+      "type": "aggregate",
+      "domain": "closing",
+      "text": "会議",
+      "changed": true,
+      "invariants": [
+        "止めるときは開いている区切りを閉じてから止める"
+      ],
+      "evidence": [
+        {
+          "path": "src/meeting/recorder.ts",
+          "symbol": "stop",
+          "role": "rule"
+        }
+      ]
+    },
+    {
+      "id": "ev-stopped",
+      "type": "event",
+      "domain": "closing",
+      "text": "録音を止めた",
+      "changed": true
+    },
+    {
+      "id": "pol-compress",
+      "type": "policy",
+      "domain": "closing",
+      "text": "止めたら",
+      "changed": true,
+      "execution": "async"
+    },
+    {
+      "id": "cmd-compress",
+      "type": "command",
+      "domain": "closing",
+      "text": "音声を圧縮する",
+      "changed": true,
+      "note": "afconvert で WAV を AAC(.m4a)にし、確かめてから WAV を消す",
+      "evidence": [
+        {
+          "path": "src/audio/compress.ts",
+          "symbol": "compressAudio",
+          "role": "persistence"
+        }
+      ]
+    },
+    {
+      "id": "agg-meeting-4",
+      "type": "aggregate",
+      "domain": "closing",
+      "text": "会議",
+      "changed": true,
+      "invariants": [
+        "圧縮した音声を確かめるまで WAV を消さない"
+      ]
+    },
+    {
+      "id": "ev-saved",
+      "type": "event",
+      "domain": "closing",
+      "text": "音声を保存した",
+      "changed": true
+    },
+    {
+      "id": "rm-history",
+      "type": "readModel",
+      "domain": "closing",
+      "text": "会議の履歴",
+      "changed": true,
+      "note": "履歴の画面(左に一覧・右に中身)と list_meetings / get_transcript / search_meetings",
+      "evidence": [
+        {
+          "path": "web/src/history.ts",
+          "symbol": "renderHistory",
+          "role": "ui"
+        },
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "search_meetings",
+          "role": "entry"
+        }
+      ]
+    },
+    {
+      "id": "agent-person",
+      "type": "actor",
+      "domain": "closing",
+      "text": "会議の進行役",
+      "changed": true
+    },
+    {
+      "id": "cmd-replay",
+      "type": "command",
+      "domain": "closing",
+      "text": "発言を聞き直す",
+      "changed": true
+    },
+    {
+      "id": "ev-replayed",
+      "type": "event",
+      "domain": "closing",
+      "text": "発言を聞き直した",
+      "changed": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent-start",
+      "to": "cmd-start",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-start",
+      "to": "agg-meeting",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-meeting",
+      "to": "ev-started",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-started",
+      "to": "pol-utterance",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-utterance",
+      "to": "cmd-transcribe",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-transcribe",
+      "to": "agg-meeting-2",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-meeting-2",
+      "to": "ev-utterance",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-utterance",
+      "to": "pol-silence",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-silence",
+      "to": "cmd-seal",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-force",
+      "to": "cmd-seal",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-seal",
+      "to": "agg-segment",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-segment",
+      "to": "ev-sealed",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-sealed",
+      "to": "pol-deliver",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-deliver",
+      "to": "cmd-deliver",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-deliver",
+      "to": "agg-segment-2",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-segment-2",
+      "to": "ev-delivered",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-delivered",
+      "to": "rm-segment",
+      "kind": "result"
+    },
+    {
+      "from": "rm-segment",
+      "to": "agent-board",
+      "kind": "flow"
+    },
+    {
+      "from": "agent-board",
+      "to": "cmd-fix-board",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-fix-board",
+      "to": "ev-board-fixed",
+      "kind": "flow"
+    },
+    {
+      "from": "agent-other",
+      "to": "cmd-pull",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-pull",
+      "to": "ev-pulled",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-claim-timeout",
+      "to": "cmd-release",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-release",
+      "to": "agg-segment-3",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-segment-3",
+      "to": "ev-released",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-released",
+      "to": "pol-deliver",
+      "kind": "flow"
+    },
+    {
+      "from": "agent-retarget",
+      "to": "cmd-retarget",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-retarget",
+      "to": "agg-meeting-5",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-meeting-5",
+      "to": "ev-retargeted",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-retargeted",
+      "to": "pol-deliver",
+      "kind": "flow"
+    },
+    {
+      "from": "agent-stop",
+      "to": "cmd-stop",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-stop",
+      "to": "agg-meeting-3",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-meeting-3",
+      "to": "ev-stopped",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-stopped",
+      "to": "pol-compress",
+      "kind": "flow"
+    },
+    {
+      "from": "pol-compress",
+      "to": "cmd-compress",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-compress",
+      "to": "agg-meeting-4",
+      "kind": "flow"
+    },
+    {
+      "from": "agg-meeting-4",
+      "to": "ev-saved",
+      "kind": "flow"
+    },
+    {
+      "from": "ev-saved",
+      "to": "rm-history",
+      "kind": "result"
+    },
+    {
+      "from": "rm-history",
+      "to": "agent-person",
+      "kind": "flow"
+    },
+    {
+      "from": "agent-person",
+      "to": "cmd-replay",
+      "kind": "flow"
+    },
+    {
+      "from": "cmd-replay",
+      "to": "ev-replayed",
+      "kind": "flow"
+    }
+  ]
+}

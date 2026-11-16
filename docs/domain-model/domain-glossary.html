@@ -1,0 +1,89 @@
+<!doctype html>
+<!-- 生成物: 直接編集しないでください。元データ: data/*.json。scrum-domain-modeling の scripts/domain-model.mjs render で作り直します。 -->
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="generator" content="scrum-domain-modeling/domain-model.mjs">
+<title>用語集 · meeting-voice-mcp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Klee+One:wght@600&family=Zen+Kaku+Gothic+New:wght@400;500;700&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+:root {
+  --wall: #fbfbf9; --wall-dot: #dcdcd4; --paper: #ffffff; --ink: #24241f; --ink-soft: #64645b;
+  --line: #d9d9cf; --ring: #6d6d66; --accent: #2f5bd3; --focus: #2563eb; --row: #f4f4ef;
+  --ok: #dbeafe; --bad: #fde2e4; --skip: #ececea; --undef: #fff4cc;
+  --s-event: #ff9e4f; --s-command: #a9cdf1; --s-policy: #b985ca; --s-external: #eda1c6;
+  --s-aggregate: #f4ce2c; --s-readModel: #c6e15c; --s-actor: #fdf6b6; --s-hotspot: #ef7088; --s-ink: #1c1a14; --hot: #ff4030;
+  --f-note: "Klee One", "Hiragino Maru Gothic ProN", "Yu Gothic", cursive;
+  --f-ui: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --f-mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --wall: #1c1d1a; --wall-dot: #30312c; --paper: #24251f; --ink: #ecece6; --ink-soft: #a6a69c; --line: #3a3b35;
+  --ring: #a8a89e; --accent: #8fb0ff; --focus: #93c5fd; --row: #2a2b25; --ok: #1e3a5f; --bad: #5b2530; --skip: #34352f; --undef: #4a4220; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --wall: #1c1d1a; --wall-dot: #30312c; --paper: #24251f; --ink: #ecece6; --ink-soft: #a6a69c; --line: #3a3b35;
+  --ring: #a8a89e; --accent: #8fb0ff; --focus: #93c5fd; --row: #2a2b25; --ok: #1e3a5f; --bad: #5b2530; --skip: #34352f; --undef: #4a4220; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--wall); color: var(--ink); font: 14px/1.65 var(--f-ui); }
+a { color: var(--accent); }
+.top { position: sticky; top: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--paper); border-bottom: 1px solid var(--line); }
+.crumb { font-weight: 700; } .crumb span { color: var(--ink-soft); font-weight: 500; margin: 0 6px; }
+.back { text-decoration: none; border: 1px solid var(--line); border-radius: 6px; padding: 3px 12px; color: var(--ink); background: var(--paper); }
+main { padding: 24px max(16px, env(safe-area-inset-left, 0px)) 48px; display: grid; gap: 22px; min-width: 0; }
+h1 { margin: 0; font-size: 26px; line-height: 1.3; text-wrap: balance; }
+h2 { margin: 0; font-size: 18px; text-wrap: balance; }
+h3 { margin: 0; font-size: 15px; }
+.lede { margin: 4px 0 0; color: var(--ink-soft); max-width: 80ch; }
+.meta { font-size: 12px; color: var(--ink-soft); font-family: var(--f-mono); }
+.card { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 16px; min-width: 0; }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; background: var(--paper); }
+th, td { border: 1px solid var(--line); padding: 7px 10px; text-align: left; vertical-align: top; }
+th { background: var(--row); font-weight: 700; white-space: nowrap; }
+code, .path { font-family: var(--f-mono); font-size: 12px; overflow-wrap: anywhere; }
+.chip { display: inline-block; padding: 1px 8px; margin: 2px 4px 2px 0; border-radius: 4px; color: var(--s-ink); font-size: 12px; text-decoration: none; }
+.code { display: inline-block; padding: 0 6px; margin: 2px 4px 2px 0; border-radius: 4px; background: var(--row); border: 1px solid var(--line); font: 12px var(--f-mono); }
+.badge { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; background: rgba(28,26,20,.14); color: var(--s-ink); margin-left: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
+.legend i { display: inline-block; width: 18px; height: 18px; border-radius: 2px; vertical-align: -4px; margin-right: 6px; box-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.legend small { color: var(--ink-soft); margin-left: 4px; }
+.foot { font-size: 12px; color: var(--ink-soft); }
+ul.plain { margin: 0; padding-left: 18px; }
+/* What the current plan changes: pulses while main has .show-changed (the toggle on each page). */
+.changes { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; border-left: 4px solid var(--hot); }
+.changes .list { flex: 1 1 320px; min-width: 0; }
+.changes a.item { margin-right: 10px; white-space: nowrap; }
+.toggle { font-size: 13px; white-space: nowrap; }
+.new { display: inline-block; padding: 0 7px; margin-left: 6px; border-radius: 999px; background: var(--hot); color: #fff; font: 700 11px/1.6 var(--f-ui); vertical-align: 1px; }
+@keyframes changed-ping {
+  0% { box-shadow: 0 0 0 4px var(--ink), 0 0 0 4px rgba(255,64,48,.95), 0 10px 14px -6px rgba(0,0,0,.5); filter: brightness(1.15); }
+  20% { filter: brightness(1); }
+  70%, 100% { box-shadow: 0 0 0 4px var(--ink), 0 0 0 40px rgba(255,64,48,0), 0 10px 14px -6px rgba(0,0,0,.5); filter: brightness(1); } }
+@keyframes chip-ping { 0% { box-shadow: 0 0 0 2px var(--ink), 0 0 0 2px rgba(255,64,48,.95); } 70%, 100% { box-shadow: 0 0 0 2px var(--ink), 0 0 0 12px rgba(255,64,48,0); } }
+@keyframes row-flash { 0% { background-color: rgba(255,64,48,.38); } 60%, 100% { background-color: rgba(255,64,48,.1); } }
+@keyframes svg-blink { 50% { stroke-opacity: .25; } }
+.show-changed .chip.changed { box-shadow: 0 0 0 2px var(--ink); animation: chip-ping 1.2s ease-out infinite; }
+.show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed { animation: row-flash 1.2s ease-out infinite; }
+.show-changed tr.is-changed > :first-child { box-shadow: inset 4px 0 0 var(--hot); }
+.show-changed .lc.is-changed, .show-changed nav a.is-changed { outline: 3px solid var(--hot); outline-offset: 2px; }
+.show-changed .gbox.is-changed { stroke: var(--hot); stroke-width: 4; animation: svg-blink 1.2s ease-in-out infinite; }
+.show-changed .gedge.is-changed { stroke: var(--hot); stroke-width: 3; animation: svg-blink 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .show-changed .chip.changed, .show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed, .show-changed .gbox.is-changed, .show-changed .gedge.is-changed { animation: none; }
+  .show-changed .is-changed > td, .show-changed .is-changed > th, .show-changed td.is-changed { background-color: rgba(255,64,48,.18); } }
+th[scope=row]{background:var(--paper);white-space:normal;min-width:7em}</style>
+</head>
+<body>
+<header class="top"><div class="crumb">meeting-voice-mcp<span>/</span>ドメインモデル<span>/</span>用語集</div><a class="back" href="index.html">← 一覧へ</a></header>
+<main class="show-changed" id="main">
+<div><h1>用語集</h1><div class="meta">確認したリビジョン planned · 2026-11-16</div></div>
+<section class="card changes"><h2>今回の計画で変わる用語（10）</h2><div class="list"><a class="item" href="#term-0">会議</a><a class="item" href="#term-1">発言</a><a class="item" href="#term-2">自分側 / 相手側</a><a class="item" href="#term-3">区切り</a><a class="item" href="#term-4">録音開始時の指示</a><a class="item" href="#term-5">届け先のセッション</a><a class="item" href="#term-6">受け取り(claim)</a><a class="item" href="#term-7">エンジン</a><a class="item" href="#term-8">録音部品</a><a class="item" href="#term-9">データフォルダ</a></div><label class="toggle"><input type="checkbox" id="show-changed" checked> 光らせて示す</label></section>
+<div class="scroll"><table><thead><tr><th>用語</th><th>意味</th><th>コード上の名前</th><th>関係する付箋</th><th>証拠</th></tr></thead><tbody><tr id="term-0" class=" is-changed"><th scope="row">会議<span class="new">変更</span></th><td>1回の録音。題名、エンジン、録音開始時の指示、届け先のセッション、発言、区切り、音声を持つ。</td><td><span class="code">Meeting</span><span class="code">meetings/&lt;id&gt;/meeting.json</span></td><td><a class="chip changed" href="big-picture.html#n-agg-meeting" style="background:var(--s-aggregate)" title="集約">会議</a></td><td><span class="foot">—</span></td></tr><tr id="term-1" class=" is-changed"><th scope="row">発言<span class="new">変更</span></th><td>無音で切れた一続きの話。自分側(mic)か相手側(system)、開始と終了の時刻、文字を持つ。</td><td><span class="code">Utterance</span><span class="code">utterances.jsonl</span></td><td><a class="chip changed" href="big-picture.html#n-ev-utterance" style="background:var(--s-event)" title="イベント">発言を文字にした</a></td><td><span class="foot">—</span></td></tr><tr id="term-2" class=" is-changed"><th scope="row">自分側 / 相手側<span class="new">変更</span></th><td>マイクの音と Mac の音(Zoom や Meet の出力)。話し手個人は区別しない。</td><td><span class="code">side: mic | system</span></td><td><a class="chip changed" href="big-picture.html#n-agg-meeting-2" style="background:var(--s-aggregate)" title="集約">会議</a></td><td><span class="foot">—</span></td></tr><tr id="term-3" class=" is-changed"><th scope="row">区切り<span class="new">変更</span></th><td>両方の音が既定3秒無音になったところで閉じる、発言のまとまり。Claude に届ける単位。</td><td><span class="code">Segment</span><span class="code">segments.jsonl</span></td><td><a class="chip changed" href="big-picture.html#n-agg-segment" style="background:var(--s-aggregate)" title="集約">区切り</a><a class="chip changed" href="big-picture.html#n-ev-sealed" style="background:var(--s-event)" title="イベント">区切りを閉じた</a></td><td><span class="foot">—</span></td></tr><tr id="term-4" class=" is-changed"><th scope="row">録音開始時の指示<span class="new">変更</span></th><td>Claude が start_recording で渡す、届いた区切りで何をするかの指示。区切りごとに添えて届ける。</td><td><span class="code">instructions</span></td><td><a class="chip changed" href="big-picture.html#n-cmd-start" style="background:var(--s-command)" title="コマンド">録音を始める</a><a class="chip changed" href="big-picture.html#n-rm-segment" style="background:var(--s-readModel)" title="リードモデル">届いた区切りと録音開始時の指示</a></td><td><span class="foot">—</span></td></tr><tr id="term-5" class=" is-changed"><th scope="row">届け先のセッション<span class="new">変更</span></th><td>録音を始めた Claude Code のセッション。プラグインのツールから始めたときに決まる。</td><td><span class="code">agentSession</span></td><td><a class="chip changed" href="big-picture.html#n-pol-deliver" style="background:var(--s-policy)" title="ポリシー">録音を始めたセッションのプラグインが受け取りに来たら</a></td><td><span class="foot">—</span></td></tr><tr id="term-6" class=" is-changed"><th scope="row">受け取り(claim)<span class="new">変更</span></th><td>プラグインが区切りを届ける前に一度だけ記録する印。届かないまま30秒たつと外れる。</td><td><span class="code">claim</span><span class="code">ack</span></td><td><a class="chip changed" href="big-picture.html#n-agg-segment-2" style="background:var(--s-aggregate)" title="集約">区切り</a></td><td><span class="foot">—</span></td></tr><tr id="term-7" class=" is-changed"><th scope="row">エンジン<span class="new">変更</span></th><td>文字起こしの方式。parakeet(Mac の中だけ、既定)か gemini(Gemini Live)。</td><td><span class="code">engine</span></td><td><a class="chip changed" href="big-picture.html#n-cmd-transcribe" style="background:var(--s-command)" title="コマンド">発言を文字にする</a></td><td><span class="foot">—</span></td></tr><tr id="term-8" class=" is-changed"><th scope="row">録音部品<span class="new">変更</span></th><td>マイクと Mac の音を録る Swift の小さなプログラム。初回にデータフォルダの bin/ へビルドする。</td><td><span class="code">meeting-voice-capture</span></td><td><a class="chip changed" href="big-picture.html#n-ext-capture" style="background:var(--s-external)" title="外部システム">録音部品(Core Audio)</a></td><td><span class="foot">—</span></td></tr><tr id="term-9" class=" is-changed"><th scope="row">データフォルダ<span class="new">変更</span></th><td>~/.meeting-voice-mcp/(MEETING_VOICE_MCP_DATA_DIR)。server.json、seq.json、meetings/、models/、bin/ を置く。</td><td><span class="code">MEETING_VOICE_MCP_DATA_DIR</span></td><td><a class="chip changed" href="big-picture.html#n-agg-meeting" style="background:var(--s-aggregate)" title="集約">会議</a></td><td><span class="foot">—</span></td></tr></tbody></table></div>
+</main>
+<script>document.getElementById('show-changed').addEventListener('change', function (e) { document.getElementById('main').classList.toggle('show-changed', e.target.checked); });</script>
+
+
+</body>
+</html>

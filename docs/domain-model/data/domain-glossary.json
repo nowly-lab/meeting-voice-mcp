@@ -1,0 +1,126 @@
+{
+  "schema": "domain-glossary/v1",
+  "title": "用語集",
+  "checked": {
+    "revision": "planned",
+    "date": "2026-11-16"
+  },
+  "terms": [
+    {
+      "term": "会議",
+      "meaning": "1回の録音。題名、エンジン、録音開始時の指示、届け先のセッション、発言、区切り、音声を持つ。",
+      "code": [
+        "Meeting",
+        "meetings/<id>/meeting.json"
+      ],
+      "nodes": [
+        "agg-meeting"
+      ],
+      "changed": true
+    },
+    {
+      "term": "発言",
+      "meaning": "無音で切れた一続きの話。自分側(mic)か相手側(system)、開始と終了の時刻、文字を持つ。",
+      "code": [
+        "Utterance",
+        "utterances.jsonl"
+      ],
+      "nodes": [
+        "ev-utterance"
+      ],
+      "changed": true
+    },
+    {
+      "term": "自分側 / 相手側",
+      "meaning": "マイクの音と Mac の音(Zoom や Meet の出力)。話し手個人は区別しない。",
+      "code": [
+        "side: mic | system"
+      ],
+      "nodes": [
+        "agg-meeting-2"
+      ],
+      "changed": true
+    },
+    {
+      "term": "区切り",
+      "meaning": "両方の音が既定3秒無音になったところで閉じる、発言のまとまり。Claude に届ける単位。",
+      "code": [
+        "Segment",
+        "segments.jsonl"
+      ],
+      "nodes": [
+        "agg-segment",
+        "ev-sealed"
+      ],
+      "changed": true
+    },
+    {
+      "term": "録音開始時の指示",
+      "meaning": "Claude が start_recording で渡す、届いた区切りで何をするかの指示。区切りごとに添えて届ける。",
+      "code": [
+        "instructions"
+      ],
+      "nodes": [
+        "cmd-start",
+        "rm-segment"
+      ],
+      "changed": true
+    },
+    {
+      "term": "届け先のセッション",
+      "meaning": "録音を始めた Claude Code のセッション。プラグインのツールから始めたときに決まる。",
+      "code": [
+        "agentSession"
+      ],
+      "nodes": [
+        "pol-deliver"
+      ],
+      "changed": true
+    },
+    {
+      "term": "受け取り(claim)",
+      "meaning": "プラグインが区切りを届ける前に一度だけ記録する印。届かないまま30秒たつと外れる。",
+      "code": [
+        "claim",
+        "ack"
+      ],
+      "nodes": [
+        "agg-segment-2"
+      ],
+      "changed": true
+    },
+    {
+      "term": "エンジン",
+      "meaning": "文字起こしの方式。parakeet(Mac の中だけ、既定)か gemini(Gemini Live)。",
+      "code": [
+        "engine"
+      ],
+      "nodes": [
+        "cmd-transcribe"
+      ],
+      "changed": true
+    },
+    {
+      "term": "録音部品",
+      "meaning": "マイクと Mac の音を録る Swift の小さなプログラム。初回にデータフォルダの bin/ へビルドする。",
+      "code": [
+        "meeting-voice-capture"
+      ],
+      "nodes": [
+        "ext-capture"
+      ],
+      "changed": true
+    },
+    {
+      "term": "データフォルダ",
+      "meaning": "~/.meeting-voice-mcp/(MEETING_VOICE_MCP_DATA_DIR)。server.json、seq.json、meetings/、models/、bin/ を置く。",
+      "code": [
+        "MEETING_VOICE_MCP_DATA_DIR"
+      ],
+      "nodes": [
+        "agg-meeting"
+      ],
+      "changed": true
+    }
+  ]
+}
