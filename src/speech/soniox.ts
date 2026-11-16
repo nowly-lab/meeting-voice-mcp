@@ -221,6 +221,12 @@ export async function createSoniox(
           await open(s);
           break;
         } catch (error) {
+          if (/\b40[123]\b/.test(error instanceof Error ? error.message : String(error))) {
+            // The key was revoked or the balance ran out during the meeting: a new connection cannot fix it.
+            s.dead = true;
+            cb.error(connectMessage(error));
+            break;
+          }
           fail(s, connectMessage(error));
         }
       }
@@ -237,6 +243,7 @@ export async function createSoniox(
   try {
     for (const s of states.values()) await open(s);
   } catch (error) {
+    stopping = true; // the engine is never returned: closing these sockets must not start reconnects
     for (const s of states.values()) try { s.socket?.close(); } catch { /* ignore */ }
     throw Error(connectMessage(error));
   }
@@ -249,7 +256,7 @@ export async function createSoniox(
         s.lastAudioAt = now;
       }
     }
-  }, keepaliveMs);
+  }, Math.max(1, Math.floor(keepaliveMs / 3))); // checked often, so a quiet side waits at most ~4/3 of keepaliveMs
   keepalive.unref?.();
 
   const vadFactory: VadFactory = opts.vad ?? ((vcb) => createParakeet(opts.vadModelDir ?? "", { ...vcb, text: () => {}, pending: () => {} }, { vadOnly: true }));

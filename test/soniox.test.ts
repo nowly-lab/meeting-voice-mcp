@@ -291,6 +291,28 @@ test("defaultConnect: a refused handshake rejects and names SONIOX_API_KEY", asy
   await server.close();
 });
 
+test("a failed start leaves no connection reconnecting in the background", async () => {
+  const f = fakes({ failFrom: 1 }); const r = record();
+  await assert.rejects(createSoniox(opts(f, ["mic", "system"], { retryBaseMs: 1 }), r.cb), /SONIOX_API_KEY/);
+  f.conns[0]!.cb.onClose(1000, ""); // the mic socket closed by the failed start reports its close
+  await sleep(30);
+  assert.equal(f.calls(), 2, "no connection after the refusal");
+  assert.equal(f.conns[0]!.closed, true);
+});
+
+test("an auth refusal while reconnecting stops that side instead of retrying", async () => {
+  const f = fakes(); const r = record();
+  let refuse = false;
+  const connect: SonioxConnect = async (side, cb) => { if (refuse) throw Error("HTTP 401"); return f.connect(side, cb); };
+  const e = await createSoniox({ ...opts(f, ["mic"], { retryBaseMs: 1 }), connect }, r.cb);
+  refuse = true;
+  f.conns[0]!.cb.onClose(1006, "");
+  await sleep(40);
+  assert.equal(r.seen.filter((s) => s.startsWith("error ")).length, 1);
+  assert.match(r.seen.find((s) => s.startsWith("error "))!, /SONIOX_API_KEY/);
+  await e.stop();
+});
+
 test("real Soniox transcribes the synthetic fixture", { skip: !process.env.SONIOX_API_KEY || process.env.MEETING_VOICE_REAL_SONIOX !== "1" ? "set SONIOX_API_KEY and MEETING_VOICE_REAL_SONIOX=1" : false }, async () => {
   const { synthesize } = await import("./helpers/real-model.ts");
   const r = record();
