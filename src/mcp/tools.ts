@@ -14,7 +14,7 @@ export const TOOL_SCHEMAS = {
   start_recording: z.object({
     title: z.string().max(200).optional(),
     instructions: z.string().max(4000).optional(),
-    engine: z.enum(["parakeet", "gemini"]).optional(),
+    engine: z.enum(["parakeet", "gemini", "soniox"]).optional(),
     language: z.string().min(2).max(16).optional(),
     sources: z.array(z.enum(["mic", "system"])).min(1).max(2).optional(),
     silence_seconds: z.number().int().min(1).max(30).optional(),

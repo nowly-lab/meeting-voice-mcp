@@ -34,15 +34,13 @@
       "id": "agent-start",
       "type": "actor",
       "domain": "recording",
-      "text": "会議のエージェント(Claude)",
-      "changed": true
+      "text": "会議のエージェント(Claude)"
     },
     {
       "id": "cmd-start",
       "type": "command",
       "domain": "recording",
       "text": "録音を始める",
-      "changed": true,
       "note": "MCP start_recording(title, instructions, engine, sources, silence_seconds)。プラグイン経由ならセッション ID がつく",
       "evidence": [
         {
@@ -62,7 +60,6 @@
       "type": "external",
       "domain": "recording",
       "text": "録音部品(Core Audio)",
-      "changed": true,
       "attach": {
         "to": "cmd-start",
         "pos": "above"
@@ -86,7 +83,6 @@
       "type": "hotspot",
       "domain": "recording",
       "text": "許可はサーバーを起動したターミナルのアプリに出る。裏で起動したサーバーで許可がどのアプリにつくかは実機で確かめる",
-      "changed": true,
       "attach": {
         "to": "cmd-start",
         "pos": "below"
@@ -97,7 +93,6 @@
       "type": "aggregate",
       "domain": "recording",
       "text": "会議",
-      "changed": true,
       "invariants": [
         "録音中の会議は1台に1つ(録音中に始めようとしたら、録音中の会議を示して断る)",
         "発言の通し番号は会議の中で増えるだけ",
@@ -121,24 +116,22 @@
       "id": "ev-started",
       "type": "event",
       "domain": "recording",
-      "text": "録音を始めた",
-      "changed": true
+      "text": "録音を始めた"
     },
     {
       "id": "pol-utterance",
       "type": "policy",
       "domain": "recording",
       "text": "発言が無音で切れたら",
-      "changed": true,
       "execution": "async",
-      "note": "Silero VAD(0.4 秒の無音)。Gemini では Live の文字起こしが届いたとき"
+      "note": "Silero VAD(0.4 秒の無音)。Gemini では Live の文字起こしが届いたとき。Soniox では <end>(発言の終わり)が届いたとき",
+      "changed": true
     },
     {
       "id": "cmd-transcribe",
       "type": "command",
       "domain": "recording",
       "text": "発言を文字にする",
-      "changed": true,
       "evidence": [
         {
           "path": "src/speech/parakeet.ts",
@@ -149,15 +142,20 @@
           "path": "src/speech/gemini-live.ts",
           "symbol": "createGeminiLive",
           "role": "source"
+        },
+        {
+          "path": "src/speech/soniox.ts",
+          "symbol": "createSoniox",
+          "role": "source"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "ext-gemini",
       "type": "external",
       "domain": "recording",
       "text": "Gemini Live",
-      "changed": true,
       "attach": {
         "to": "cmd-transcribe",
         "pos": "above"
@@ -169,10 +167,39 @@
       "type": "hotspot",
       "domain": "recording",
       "text": "Gemini Live で応答を出させずに文字起こしだけ得る設定と、モデル名はスパイクで決める",
-      "changed": true,
       "attach": {
         "to": "cmd-transcribe",
         "pos": "below"
+      }
+    },
+    {
+      "id": "ext-soniox",
+      "type": "external",
+      "domain": "recording",
+      "text": "Soniox",
+      "changed": true,
+      "attach": {
+        "to": "cmd-transcribe",
+        "pos": "above-right"
+      },
+      "note": "SONIOX_API_KEY(サーバーの環境変数)。mic と system で別の WebSocket、stt-rt-v5(MEETING_VOICE_SONIOX_MODEL で変更)、language_hints、enable_endpoint_detection。切れたら・300 分の上限ではつなぎ直し、その間の音声は取っておいて送る",
+      "evidence": [
+        {
+          "path": "src/speech/soniox.ts",
+          "symbol": "stt-rt.soniox.com",
+          "role": "contract"
+        }
+      ]
+    },
+    {
+      "id": "hs-soniox",
+      "type": "hotspot",
+      "domain": "recording",
+      "text": "本物の Soniox での日本語の精度と <end> の遅れ(既定 最大 2 秒)は、鍵を設定してから実機で確かめる",
+      "changed": true,
+      "attach": {
+        "to": "cmd-transcribe",
+        "pos": "below-right"
       }
     },
     {
@@ -180,11 +207,10 @@
       "type": "aggregate",
       "domain": "recording",
       "text": "会議",
-      "changed": true,
       "invariants": [
         "発言は自分側(mic)か相手側(system)のどちらか",
         "スピーカーの音をマイクが拾った発言(3秒以内の相手側とほぼ同じ文字)は自分側から外し、外した印を残す",
-        "取り込みが遅れて保存できなかった音声は、側と時間の範囲を「音声の欠け」として会議に残し、画面と状態に出す"
+        "取り込みが遅れて保存できなかった音声は、側と時間の範囲を「音声の欠け」として会議に残し、画面と状態に出す。20 ms 未満の時刻の揺れは欠けに数えない"
       ],
       "evidence": [
         {
@@ -197,21 +223,20 @@
           "symbol": "recordGap",
           "role": "rule"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "ev-utterance",
       "type": "event",
       "domain": "recording",
-      "text": "発言を文字にした",
-      "changed": true
+      "text": "発言を文字にした"
     },
     {
       "id": "pol-silence",
       "type": "policy",
       "domain": "segment",
       "text": "両方の音が無音のまま既定3秒たったら",
-      "changed": true,
       "execution": "async",
       "note": "確定した発言が1つ以上たまっているとき。Gemini では最後の発言の文字を最大5秒待つ",
       "evidence": [
@@ -227,22 +252,19 @@
       "type": "policy",
       "domain": "segment",
       "text": "区切りがないまま60秒たったら",
-      "changed": true,
       "execution": "scheduled"
     },
     {
       "id": "cmd-seal",
       "type": "command",
       "domain": "segment",
-      "text": "区切りを閉じる",
-      "changed": true
+      "text": "区切りを閉じる"
     },
     {
       "id": "agg-segment",
       "type": "aggregate",
       "domain": "segment",
       "text": "区切り",
-      "changed": true,
       "invariants": [
         "発言はちょうど1つの区切りに入る",
         "閉じた区切りの中身は変わらない",
@@ -265,15 +287,13 @@
       "id": "ev-sealed",
       "type": "event",
       "domain": "segment",
-      "text": "区切りを閉じた",
-      "changed": true
+      "text": "区切りを閉じた"
     },
     {
       "id": "pol-deliver",
       "type": "policy",
       "domain": "delivery",
       "text": "録音を始めたセッションのプラグインが受け取りに来たら",
-      "changed": true,
       "execution": "external",
       "note": "プラグインが /api/bridge/poll で長くポーリングし、手が空いていれば新しい発言として、作業中なら次の一歩に差し込む。たまった区切りは1通にまとめる",
       "evidence": [
@@ -293,15 +313,13 @@
       "id": "cmd-deliver",
       "type": "command",
       "domain": "delivery",
-      "text": "区切りを届ける",
-      "changed": true
+      "text": "区切りを届ける"
     },
     {
       "id": "hs-injection",
       "type": "hotspot",
       "domain": "delivery",
       "text": "話された言葉はデータとして渡す。届ける文は「会議の文字起こし(データ)」と録音開始時の指示で包むが、Claude が従わない場合は防げない",
-      "changed": true,
       "attach": {
         "to": "cmd-deliver",
         "pos": "below"
@@ -312,7 +330,6 @@
       "type": "aggregate",
       "domain": "delivery",
       "text": "区切り",
-      "changed": true,
       "invariants": [
         "区切りは一度だけ受け取られる(claim)",
         "受け取ったまま30秒届かなければ、また受け取れる",
@@ -330,29 +347,25 @@
       "id": "ev-delivered",
       "type": "event",
       "domain": "delivery",
-      "text": "Claudeに届けた",
-      "changed": true
+      "text": "Claudeに届けた"
     },
     {
       "id": "rm-segment",
       "type": "readModel",
       "domain": "delivery",
-      "text": "届いた区切りと録音開始時の指示",
-      "changed": true
+      "text": "届いた区切りと録音開始時の指示"
     },
     {
       "id": "agent-board",
       "type": "actor",
       "domain": "delivery",
-      "text": "会議のエージェント(Claude)",
-      "changed": true
+      "text": "会議のエージェント(Claude)"
     },
     {
       "id": "cmd-fix-board",
       "type": "command",
       "domain": "delivery",
       "text": "図を直す",
-      "changed": true,
       "note": "event-storming-mcp の apply_changes。meeting-voice-mcp とは直接つながらない"
     },
     {
@@ -360,7 +373,6 @@
       "type": "external",
       "domain": "delivery",
       "text": "event-storming-mcp",
-      "changed": true,
       "attach": {
         "to": "cmd-fix-board",
         "pos": "above"
@@ -370,22 +382,19 @@
       "id": "ev-board-fixed",
       "type": "event",
       "domain": "delivery",
-      "text": "図を直した",
-      "changed": true
+      "text": "図を直した"
     },
     {
       "id": "agent-other",
       "type": "actor",
       "domain": "delivery",
-      "text": "プラグインのないエージェント",
-      "changed": true
+      "text": "プラグインのないエージェント"
     },
     {
       "id": "rm-new",
       "type": "readModel",
       "domain": "delivery",
       "text": "新しい発言",
-      "changed": true,
       "attach": {
         "to": "agent-other",
         "pos": "above"
@@ -397,7 +406,6 @@
       "type": "command",
       "domain": "delivery",
       "text": "新しい発言を取る",
-      "changed": true,
       "evidence": [
         {
           "path": "src/mcp/tools.ts",
@@ -410,15 +418,13 @@
       "id": "ev-pulled",
       "type": "event",
       "domain": "delivery",
-      "text": "新しい発言を渡した",
-      "changed": true
+      "text": "新しい発言を渡した"
     },
     {
       "id": "pol-claim-timeout",
       "type": "policy",
       "domain": "delivery",
       "text": "受け取ってから30秒届いた知らせがなければ",
-      "changed": true,
       "execution": "scheduled"
     },
     {
@@ -426,7 +432,6 @@
       "type": "command",
       "domain": "delivery",
       "text": "受け取りを外す",
-      "changed": true,
       "note": "次の受け取りでは「再送(届いていない可能性)」と添えて届ける",
       "evidence": [
         {
@@ -441,7 +446,6 @@
       "type": "aggregate",
       "domain": "delivery",
       "text": "区切り",
-      "changed": true,
       "invariants": [
         "外した区切りは再送の印をつけて、また受け取れる"
       ]
@@ -450,22 +454,19 @@
       "id": "ev-released",
       "type": "event",
       "domain": "delivery",
-      "text": "受け取りを外した",
-      "changed": true
+      "text": "受け取りを外した"
     },
     {
       "id": "agent-retarget",
       "type": "actor",
       "domain": "delivery",
-      "text": "別のセッションの Claude",
-      "changed": true
+      "text": "別のセッションの Claude"
     },
     {
       "id": "cmd-retarget",
       "type": "command",
       "domain": "delivery",
       "text": "届け先を自分にする",
-      "changed": true,
       "note": "MCP take_delivery。始めたセッションを閉じた、stdio から始めたなどで届け先がないとき",
       "evidence": [
         {
@@ -480,7 +481,6 @@
       "type": "aggregate",
       "domain": "delivery",
       "text": "会議",
-      "changed": true,
       "invariants": [
         "届け先は1つのセッションだけ",
         "届け先がない間の区切りは閉じたまま待つ"
@@ -490,36 +490,39 @@
       "id": "ev-retargeted",
       "type": "event",
       "domain": "delivery",
-      "text": "届け先を変えた",
-      "changed": true
+      "text": "届け先を変えた"
     },
     {
       "id": "agent-stop",
       "type": "actor",
       "domain": "closing",
-      "text": "会議のエージェント(Claude)",
-      "changed": true
+      "text": "会議のエージェント(Claude)"
     },
     {
       "id": "cmd-stop",
       "type": "command",
       "domain": "closing",
       "text": "録音を止める",
-      "changed": true,
       "evidence": [
         {
           "path": "src/mcp/tools.ts",
           "symbol": "stop_recording",
           "role": "entry"
+        },
+        {
+          "path": "src/mcp/tools.ts",
+          "symbol": "meetingSummary",
+          "role": "entry"
         }
-      ]
+      ],
+      "changed": true,
+      "note": "stop_recording は会議の要約(題名・時刻・エンジン・区切りと発言の数・音声の欠けの件数と合計)だけを返す。区切りは録音中に届いているので中身は返さない"
     },
     {
       "id": "agg-meeting-3",
       "type": "aggregate",
       "domain": "closing",
       "text": "会議",
-      "changed": true,
       "invariants": [
         "止めるときは開いている区切りを閉じてから止める"
       ],
@@ -535,15 +538,13 @@
       "id": "ev-stopped",
       "type": "event",
       "domain": "closing",
-      "text": "録音を止めた",
-      "changed": true
+      "text": "録音を止めた"
     },
     {
       "id": "pol-compress",
       "type": "policy",
       "domain": "closing",
       "text": "止めたら",
-      "changed": true,
       "execution": "async"
     },
     {
@@ -551,7 +552,6 @@
       "type": "command",
       "domain": "closing",
       "text": "音声を圧縮する",
-      "changed": true,
       "note": "afconvert で WAV を AAC(.m4a)にし、確かめてから WAV を消す",
       "evidence": [
         {
@@ -566,7 +566,6 @@
       "type": "aggregate",
       "domain": "closing",
       "text": "会議",
-      "changed": true,
       "invariants": [
         "圧縮した音声を確かめるまで WAV を消さない"
       ]
@@ -575,15 +574,13 @@
       "id": "ev-saved",
       "type": "event",
       "domain": "closing",
-      "text": "音声を保存した",
-      "changed": true
+      "text": "音声を保存した"
     },
     {
       "id": "rm-history",
       "type": "readModel",
       "domain": "closing",
       "text": "会議の履歴",
-      "changed": true,
       "note": "履歴の画面(左に一覧・右に中身)と list_meetings / get_transcript / search_meetings",
       "evidence": [
         {
@@ -602,22 +599,19 @@
       "id": "agent-person",
       "type": "actor",
       "domain": "closing",
-      "text": "会議の進行役",
-      "changed": true
+      "text": "会議の進行役"
     },
     {
       "id": "cmd-replay",
       "type": "command",
       "domain": "closing",
-      "text": "発言を聞き直す",
-      "changed": true
+      "text": "発言を聞き直す"
     },
     {
       "id": "ev-replayed",
       "type": "event",
       "domain": "closing",
-      "text": "発言を聞き直した",
-      "changed": true
+      "text": "発言を聞き直した"
     }
   ],
   "edges": [

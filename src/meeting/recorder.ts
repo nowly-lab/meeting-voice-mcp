@@ -10,7 +10,7 @@ import { Segmenter, sealSegment, type SealedSegment } from "../segment/segmenter
 import type { SpeechCallbacks, SpeechEngine } from "../speech/types.ts";
 import type { MeetingMeta, MeetingStore, Side, Utterance } from "../store/store.ts";
 
-export type EngineKind = "parakeet" | "gemini";
+export type EngineKind = "parakeet" | "gemini" | "soniox";
 export type EngineFactory = (kind: EngineKind, sides: Side[], cb: SpeechCallbacks, language: string) => Promise<SpeechEngine>;
 export type CaptureFn = (sources: Side[], on: { event(e: CaptureEvent): void; pcm(side: Side, chunk: Buffer, atMs: number): void }) => Promise<CaptureHandle>;
 export type SourceState = "ok" | "denied" | "off";
@@ -46,7 +46,8 @@ const FORCE_MS = 60_000;
 const BYTES_PER_MS = 32; // 16 kHz, 16-bit mono
 const IDLE_FEED_AFTER_MS = 300; // a side silent this long (no PCM at all) is fed silence
 const MAX_PAD_MS = 30 * 60_000;
-const GEMINI_WAIT_MS = 5_000;
+/** Cloud engines send the text after the voice ends; the segmenter waits for it this long. */
+const TRANSCRIPT_WAIT_MS = 5_000;
 /** A chunk that starts less than this before the cursor is capture clock jitter, not lost audio. */
 const GAP_JITTER_MS = 20;
 
@@ -141,7 +142,7 @@ export class Recorder {
         engine,
         capture: null,
         segmenter: new Segmenter(
-          { silenceMs: silenceSeconds * 1000, forceMs: FORCE_MS, transcriptWaitMs: engineKind === "gemini" ? GEMINI_WAIT_MS : 0 },
+          { silenceMs: silenceSeconds * 1000, forceMs: FORCE_MS, transcriptWaitMs: engineKind === "parakeet" ? 0 : TRANSCRIPT_WAIT_MS },
           (s) => this.onSeal(meta.id, s),
         ),
         wav: {},

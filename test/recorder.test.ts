@@ -242,3 +242,17 @@ test("overlaps under 20 ms are trimmed without an audio gap", async () => {
   await s.recorder.stop();
   assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
 });
+
+test("soniox waits for a pending transcript before sealing, like gemini", async () => {
+  const s = setup();
+  const m = await s.recorder.start({ engine: "soniox", agentSession: "A" });
+  assert.equal(s.store.readMeta(m.id).engine, "soniox");
+  s.cb().voice("mic", true, 0);
+  s.cb().voice("mic", false, 1000);
+  s.cb().pending("mic", 1000);
+  s.at(4000);
+  assert.equal(s.bridge.pending(m.id).count, 0, "the <end> and its text are still on the way");
+  s.cb().text({ side: "mic", text: "注文が確定したら", startMs: 0, endMs: 1000 });
+  s.at(4100);
+  assert.equal(s.bridge.pending(m.id).count, 1);
+});

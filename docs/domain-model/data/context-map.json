@@ -13,7 +13,8 @@
       "responsibility": "録音の開始と停止、文字起こし、区切り、届ける待ち行列、データフォルダ、MCP、画面の配信",
       "owns": [
         "データフォルダ(server.json, seq.json, meetings/)",
-        "GEMINI_API_KEY"
+        "GEMINI_API_KEY",
+        "SONIOX_API_KEY"
       ],
       "contract": [
         "MCP ツール(stdio と /mcp)",
@@ -30,7 +31,6 @@
         "segment",
         "closing"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "src/server.ts",
@@ -42,7 +42,8 @@
           "symbol": "main",
           "role": "entry"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "capture",
@@ -58,7 +59,6 @@
       "domains": [
         "recording"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "native/AudioCapture.swift",
@@ -70,7 +70,7 @@
     {
       "id": "speech",
       "name": "文字起こし",
-      "tech": "sherpa-onnx-node(Parakeet + Silero VAD)/ @google/genai Live",
+      "tech": "sherpa-onnx-node(Parakeet + Silero VAD)/ @google/genai Live / Soniox リアルタイム WebSocket(ws)",
       "responsibility": "PCM から発言と文字を作る",
       "owns": [
         "models/(固定の版・SHA-256)"
@@ -81,14 +81,19 @@
       "domains": [
         "recording"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "src/speech/parakeet.ts",
           "symbol": "createParakeet",
           "role": "source"
+        },
+        {
+          "path": "src/speech/soniox.ts",
+          "symbol": "createSoniox",
+          "role": "source"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "plugin",
@@ -105,7 +110,6 @@
       "domains": [
         "delivery"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "plugin/hooks/register.ts",
@@ -126,7 +130,6 @@
       "domains": [
         "closing"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "web/src/live.ts",
@@ -148,8 +151,7 @@
       ],
       "domains": [
         "delivery"
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "claude",
@@ -164,46 +166,39 @@
       ],
       "domains": [
         "delivery"
-      ],
-      "changed": true
+      ]
     }
   ],
   "relations": [
     {
       "from": "server",
       "to": "capture",
-      "label": "起動して PCM を受ける",
-      "changed": true
+      "label": "起動して PCM を受ける"
     },
     {
       "from": "server",
       "to": "speech",
-      "label": "PCM を渡して文字を受ける",
-      "changed": true
+      "label": "PCM を渡して文字を受ける"
     },
     {
       "from": "plugin",
       "to": "server",
-      "label": "ツールの中継と区切りの受け取り",
-      "changed": true
+      "label": "ツールの中継と区切りの受け取り"
     },
     {
       "from": "plugin",
       "to": "claude",
-      "label": "区切りをメッセージとして入れる",
-      "changed": true
+      "label": "区切りをメッセージとして入れる"
     },
     {
       "from": "claude",
       "to": "es",
-      "label": "図を直す",
-      "changed": true
+      "label": "図を直す"
     },
     {
       "from": "web",
       "to": "server",
-      "label": "見るだけ",
-      "changed": true
+      "label": "見るだけ"
     }
   ]
 }

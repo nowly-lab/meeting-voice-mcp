@@ -3,7 +3,7 @@
 Record a meeting on your Mac, transcribe it, and hand each part of the conversation to Claude while the meeting goes on.
 
 - Records the **microphone** (自分側, your side) and the **Mac's own audio** (相手側, the other side: Zoom, Meet and other apps) as two separate streams.
-- Transcribes on the Mac with **Parakeet** (free; audio never leaves the Mac; Japanese only), or with **Gemini Live** (`GEMINI_API_KEY`, any language).
+- Transcribes on the Mac with **Parakeet** (free; audio never leaves the Mac; Japanese only), with **Gemini Live** (`GEMINI_API_KEY`, any language), or with **Soniox** real-time (`SONIOX_API_KEY`, model `stt-rt-v5`, override with `MEETING_VOICE_SONIOX_MODEL`).
 - After a few seconds of silence, everything said since the last pause is sent as one **segment** to the Claude Code session that started recording. It arrives in that session as a new message, the same way Plannotator Inbox replies do.
 - Everything runs on **one local server**: recording, transcription, MCP, delivery to Claude, and a page showing the live transcript and past meetings.
 
@@ -68,8 +68,8 @@ If Claude is still working when a segment closes, the segment is added to the ru
 
 | Tool | What it does |
 | --- | --- |
-| `start_recording` | `title`, `instructions`, `engine` (`parakeet` \| `gemini`), `language` (`ja`), `sources` (`["mic","system"]`), `silence_seconds` (1–30, default 3). Refused while another meeting is recording. |
-| `stop_recording` | Stops; open speech becomes the last segment; audio is compressed to AAC |
+| `start_recording` | `title`, `instructions`, `engine` (`parakeet` \| `gemini` \| `soniox`), `language` (`ja`), `sources` (`["mic","system"]`), `silence_seconds` (1–30, default 3). Refused while another meeting is recording. |
+| `stop_recording` | Stops; open speech becomes the last segment; audio is compressed to AAC. Returns a short summary (counts only); read the content with `get_meeting` or `get_transcript` |
 | `recording_status` | Meeting, elapsed time, sources (`ok`/`denied`/`off`), waiting segments and their target |
 | `get_new_utterances` | Utterances after `after_seq` (for agents without the plugin) |
 | `take_delivery` | Make this session the delivery target (for example after the starting session was closed) |
@@ -84,7 +84,8 @@ With the plugin, the session has one tool, `meeting_voice`, and the tool name go
 - **Use headphones** if you can. Through speakers, the microphone also picks up the other side. An utterance on your side that closely matches one from the other side within 3 s is dropped from your side, and the drop is shown on the page.
 - **What Claude receives is meeting data, not instructions.** Each segment is wrapped as a transcript and carries the instructions given at start. Anyone in the meeting can still say something that reads like an instruction, so give Claude instructions narrow enough for the job.
 - In Gemini mode, utterance boundaries are approximate. In a 13-minute test, Gemini's transcription sometimes lagged, so the end of one phrase arrived with the next one. No text was lost, but it can land in the next segment. Parakeet (the default) does not have this lag.
-- Parakeet keeps the audio on the Mac. Gemini sends it to Google. With a **free-tier** Gemini key, Google may use what you send, so check that everyone in the meeting is fine with that.
+- In Soniox mode, Soniox marks the end of each utterance (endpoint detection, up to about 2 s after the voice ends); the segment waits up to 5 s for that text. `SONIOX_API_KEY` is read from the environment that starts the server, like `GEMINI_API_KEY`.
+- Parakeet keeps the audio on the Mac. Gemini sends it to Google, Soniox sends it to Soniox. With a **free-tier** Gemini key, Google may use what you send, so check that everyone in the meeting is fine with that.
 
 ## Data
 
@@ -116,6 +117,7 @@ npm install
 npm test                                   # unit and browser tests (system Chrome)
 MEETING_VOICE_REAL_MODEL=1 MEETING_VOICE_MODEL_DIR=<parakeet dir> npm test -- test/parakeet.test.ts
 MEETING_VOICE_REAL_GEMINI=1 npm test -- test/gemini-live.test.ts   # needs GEMINI_API_KEY
+MEETING_VOICE_REAL_SONIOX=1 npm test -- test/soniox.test.ts       # needs SONIOX_API_KEY
 claude plugin validate plugin
 ```
 

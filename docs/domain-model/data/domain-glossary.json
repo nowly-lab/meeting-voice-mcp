@@ -15,8 +15,7 @@
       ],
       "nodes": [
         "agg-meeting"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "発言",
@@ -27,8 +26,7 @@
       ],
       "nodes": [
         "ev-utterance"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "自分側 / 相手側",
@@ -38,8 +36,7 @@
       ],
       "nodes": [
         "agg-meeting-2"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "区切り",
@@ -51,8 +48,7 @@
       "nodes": [
         "agg-segment",
         "ev-sealed"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "録音開始時の指示",
@@ -63,8 +59,7 @@
       "nodes": [
         "cmd-start",
         "rm-segment"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "届け先のセッション",
@@ -74,8 +69,7 @@
       ],
       "nodes": [
         "pol-deliver"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "受け取り(claim)",
@@ -86,12 +80,11 @@
       ],
       "nodes": [
         "agg-segment-2"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "エンジン",
-      "meaning": "文字起こしの方式。parakeet(Mac の中だけ、既定)か gemini(Gemini Live)。",
+      "meaning": "文字起こしの方式。parakeet(Mac の中だけ、既定)、gemini(Gemini Live)、soniox(Soniox のリアルタイム API)。",
       "code": [
         "engine"
       ],
@@ -108,8 +101,7 @@
       ],
       "nodes": [
         "ext-capture"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "データフォルダ",
@@ -119,12 +111,11 @@
       ],
       "nodes": [
         "agg-meeting"
-      ],
-      "changed": true
+      ]
     },
     {
       "term": "音声の欠け",
-      "meaning": "録音部品からの音声が遅れて届き、無音で埋めた後だったため保存も文字起こしもできなかった範囲。側と開始・終了の時刻を会議に残し、録音中の画面と履歴に出す。",
+      "meaning": "録音部品からの音声が遅れて届き、無音で埋めた後だったため保存も文字起こしもできなかった範囲。側と開始・終了の時刻を会議に残し、録音中の画面と履歴に出す。20 ms 未満の時刻の揺れは欠けに数えない。",
       "code": [
         "audioGaps",
         "recordGap"
@@ -132,14 +123,14 @@
       "nodes": [
         "agg-meeting-2"
       ],
-      "changed": true,
       "evidence": [
         {
           "path": "src/store/store.ts",
           "symbol": "audioGaps",
           "role": "persistence"
         }
-      ]
+      ],
+      "changed": true
     }
   ]
 }

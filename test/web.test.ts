@@ -38,7 +38,8 @@ test("idle page waits for Claude and lists the setup checks", { skip }, async ()
   const { s } = await boot();
   const page = await open(s);
   await page.getByText("Claudeから録音を始めるのを待っています").waitFor();
-  assert.equal(await page.locator(".check").count(), 5);
+  assert.equal(await page.locator(".check").count(), 6);
+  await page.getByText("SONIOX_API_KEY なし").waitFor();
   await page.close(); await s.close();
 });
 
@@ -142,5 +143,16 @@ test("R3-1: history shows the missing-audio mark for a meeting with audio gaps",
   s.store.updateMeeting(m.id, { status: "saved", endedAt: new Date().toISOString(), audioGaps: [{ side: "system", fromMs: 500, toMs: 2600 }] });
   const page = await open(s, `#history=${m.id}`);
   await page.getByText("音声の欠け 2.1秒").waitFor({ timeout: 5000 });
+  await page.close(); await s.close();
+});
+
+test("a Soniox meeting is labelled Soniox in the history", { skip }, async () => {
+  const { s } = await boot();
+  const m = s.store.createMeeting({ title: "受注の確認", startedAt: new Date().toISOString(), engine: "soniox", language: "ja", instructions: "", agentSession: null, silenceSeconds: 3 });
+  s.store.updateMeeting(m.id, { status: "saved", endedAt: new Date().toISOString() });
+  const page = await open(s, `#history=${m.id}`);
+  await page.locator(".item").first().waitFor();
+  assert.match(await page.locator(".item").first().innerText(), /Soniox/);
+  await page.locator(".chip", { hasText: "Soniox" }).waitFor();
   await page.close(); await s.close();
 });

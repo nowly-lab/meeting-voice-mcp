@@ -15,46 +15,39 @@
         {
           "id": "recording",
           "name": "録音中",
-          "initial": true,
-          "changed": true
+          "initial": true
         },
         {
           "id": "stopped",
-          "name": "止めた(圧縮中)",
-          "changed": true
+          "name": "止めた(圧縮中)"
         },
         {
           "id": "saved",
           "name": "保存した",
-          "final": true,
-          "changed": true
+          "final": true
         }
       ],
       "transitions": [
         {
           "from": "recording",
           "on": "cmd-transcribe",
-          "to": "recording",
-          "changed": true
+          "to": "recording"
         },
         {
           "from": "recording",
           "on": "cmd-seal",
-          "to": "recording",
-          "changed": true
+          "to": "recording"
         },
         {
           "from": "recording",
           "on": "cmd-stop",
           "to": "stopped",
-          "effect": "開いている区切りを閉じる",
-          "changed": true
+          "effect": "開いている区切りを閉じる"
         },
         {
           "from": "stopped",
           "on": "cmd-compress",
-          "to": "saved",
-          "changed": true
+          "to": "saved"
         }
       ],
       "rejections": [
@@ -62,57 +55,49 @@
           "state": "stopped",
           "on": "cmd-stop",
           "kind": "ignored",
-          "reason": "もう止めた",
-          "changed": true
+          "reason": "もう止めた"
         },
         {
           "state": "saved",
           "on": "cmd-stop",
           "kind": "ignored",
-          "reason": "もう止めた",
-          "changed": true
+          "reason": "もう止めた"
         },
         {
           "state": "stopped",
           "on": "cmd-transcribe",
           "kind": "ignored",
-          "reason": "止めた後に届いた文字起こしは、止める前の発言なら足す",
-          "changed": true
+          "reason": "止めた後に届いた文字起こしは、止める前の発言なら足す"
         },
         {
           "state": "saved",
           "on": "cmd-transcribe",
           "kind": "invalid",
-          "reason": "保存した会議は変わらない",
-          "changed": true
+          "reason": "保存した会議は変わらない"
         },
         {
           "state": "stopped",
           "on": "cmd-seal",
           "kind": "ignored",
-          "reason": "止めるときに閉じ終えている",
-          "changed": true
+          "reason": "止めるときに閉じ終えている"
         },
         {
           "state": "saved",
           "on": "cmd-seal",
           "kind": "invalid",
-          "reason": "保存した会議は変わらない",
-          "changed": true
+          "reason": "保存した会議は変わらない"
         },
         {
           "state": "recording",
           "on": "cmd-compress",
           "kind": "invalid",
-          "reason": "録音中は圧縮しない",
-          "changed": true
+          "reason": "録音中は圧縮しない"
         },
         {
           "state": "saved",
           "on": "cmd-compress",
           "kind": "ignored",
-          "reason": "もう圧縮した",
-          "changed": true
+          "reason": "もう圧縮した"
         }
       ]
     },
@@ -125,19 +110,16 @@
         {
           "id": "sealed",
           "name": "閉じた(届け待ち)",
-          "initial": true,
-          "changed": true
+          "initial": true
         },
         {
           "id": "claimed",
-          "name": "受け取られた",
-          "changed": true
+          "name": "受け取られた"
         },
         {
           "id": "delivered",
           "name": "届いた",
-          "final": true,
-          "changed": true
+          "final": true
         }
       ],
       "transitions": [
@@ -145,22 +127,19 @@
           "from": "sealed",
           "on": "cmd-deliver",
           "to": "claimed",
-          "guard": "届け先のセッションのプラグイン",
-          "changed": true
+          "guard": "届け先のセッションのプラグイン"
         },
         {
           "from": "claimed",
           "on": "ev-delivered",
-          "to": "delivered",
-          "changed": true
+          "to": "delivered"
         },
         {
           "from": "claimed",
           "on": "cmd-release",
           "to": "sealed",
           "guard": "受け取ってから30秒届かない",
-          "effect": "再送の印をつける",
-          "changed": true
+          "effect": "再送の印をつける"
         }
       ],
       "rejections": [
@@ -168,43 +147,37 @@
           "state": "claimed",
           "on": "cmd-deliver",
           "kind": "invalid",
-          "reason": "別の受け取りが進んでいる",
-          "changed": true
+          "reason": "別の受け取りが進んでいる"
         },
         {
           "state": "delivered",
           "on": "cmd-deliver",
           "kind": "invalid",
-          "reason": "もう届いた",
-          "changed": true
+          "reason": "もう届いた"
         },
         {
           "state": "sealed",
           "on": "ev-delivered",
           "kind": "invalid",
-          "reason": "受け取らずに届いたことにはできない",
-          "changed": true
+          "reason": "受け取らずに届いたことにはできない"
         },
         {
           "state": "delivered",
           "on": "ev-delivered",
           "kind": "ignored",
-          "reason": "二度目の届いた知らせは無視する",
-          "changed": true
+          "reason": "二度目の届いた知らせは無視する"
         },
         {
           "state": "sealed",
           "on": "cmd-release",
           "kind": "ignored",
-          "reason": "受け取られていない",
-          "changed": true
+          "reason": "受け取られていない"
         },
         {
           "state": "delivered",
           "on": "cmd-release",
           "kind": "ignored",
-          "reason": "もう届いた",
-          "changed": true
+          "reason": "もう届いた"
         }
       ]
     }

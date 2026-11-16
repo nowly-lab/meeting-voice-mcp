@@ -15,6 +15,7 @@ import { startCapture } from "./capture/helper.ts";
 import { Recorder, type CaptureFn, type EngineFactory, type LiveEvent } from "./meeting/recorder.ts";
 import { createMcpServer } from "./mcp/tools.ts";
 import { createGeminiLive, DEFAULT_GEMINI_MODEL } from "./speech/gemini-live.ts";
+import { createSoniox, DEFAULT_SONIOX_MODEL } from "./speech/soniox.ts";
 import { ensureParakeetModel, modelReady, parakeetDir, SILERO_DIRECTORY, SILERO_FILES } from "./speech/model.ts";
 import { createParakeet } from "./speech/parakeet.ts";
 import { MeetingStore } from "./store/store.ts";
@@ -53,6 +54,12 @@ export function defaultEngines(dataDir: string, env: Env, progress: ModelProgres
       if (!apiKey) throw Error("GEMINI_API_KEY が設定されていません。サーバーを起動する環境に GEMINI_API_KEY を設定するか、engine: \"parakeet\" を使ってください。");
       const vadModelDir = await ensureParakeetModel(dataDir, { files: SILERO_FILES, directory: SILERO_DIRECTORY });
       return createGeminiLive({ apiKey, model: env.MEETING_VOICE_GEMINI_MODEL ?? DEFAULT_GEMINI_MODEL, language, sides, vadModelDir }, cb);
+    }
+    if (kind === "soniox") {
+      const apiKey = env.SONIOX_API_KEY?.trim();
+      if (!apiKey) throw Error("SONIOX_API_KEY が設定されていません。サーバーを起動する環境に SONIOX_API_KEY を設定するか、engine: \"parakeet\" を使ってください。");
+      const vadModelDir = await ensureParakeetModel(dataDir, { files: SILERO_FILES, directory: SILERO_DIRECTORY });
+      return createSoniox({ apiKey, model: env.MEETING_VOICE_SONIOX_MODEL ?? DEFAULT_SONIOX_MODEL, language, sides, vadModelDir }, cb);
     }
     if (!modelReady(parakeetDir(dataDir))) {
       startDownload();
@@ -298,6 +305,7 @@ async function startLockedServer(opts: ServerOptions, releaseLock: () => void): 
             recording: recorder.status(),
             model: progress,
             gemini: Boolean(env.GEMINI_API_KEY?.trim()),
+            soniox: Boolean(env.SONIOX_API_KEY?.trim()),
             plugin: [...plugins.values()].some((p) => now - p.at < 60_000),
           });
         }
