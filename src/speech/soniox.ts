@@ -221,7 +221,7 @@ export async function createSoniox(
           await open(s);
           break;
         } catch (error) {
-          if (/\b40[123]\b/.test(error instanceof Error ? error.message : String(error))) {
+          if (/^HTTP 40[123]$/.test(error instanceof Error ? error.message : "")) { // the handshake status from defaultConnect
             // The key was revoked or the balance ran out during the meeting: a new connection cannot fix it.
             s.dead = true;
             cb.error(connectMessage(error));
