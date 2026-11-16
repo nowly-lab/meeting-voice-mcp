@@ -241,6 +241,8 @@ test("overlaps under 20 ms are trimmed without an audio gap", async () => {
   assert.deepEqual(s.recorder.status().audioGaps, []);
   await s.recorder.stop();
   assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
+  // The overlapping head of each chunk is trimmed so the timeline stays continuous: 100 + 99.6 + 85.4 ms.
+  assert.equal(Math.round(readFileSync(s.store.audioPath(m.id, "system", "wav")).readUInt32LE(40) / 32), 285);
 });
 
 test("soniox waits for a pending transcript before sealing, like gemini", async () => {

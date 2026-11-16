@@ -182,7 +182,7 @@
         "to": "cmd-transcribe",
         "pos": "above-right"
       },
-      "note": "SONIOX_API_KEY(サーバーの環境変数)。mic と system で別の WebSocket、stt-rt-v5(MEETING_VOICE_SONIOX_MODEL で変更)、language_hints、enable_endpoint_detection。切れたら・300 分の上限ではつなぎ直し、その間の音声は取っておいて送る",
+      "note": "SONIOX_API_KEY(サーバーの環境変数)。mic と system で別の WebSocket、stt-rt-v5(MEETING_VOICE_SONIOX_MODEL で変更)、language_hints、enable_endpoint_detection。Soniox の時刻は受け取った音の長さで数えるので、音の切れ目ごとに録音の時刻との対応を持つ。切れたら・300 分の上限では間をあけてつなぎ直し(5 回続けて失敗したら知らせる)、その間の音声は取っておいて送る。音のない側には 15 秒ごとに keepalive",
       "evidence": [
         {
           "path": "src/speech/soniox.ts",
@@ -238,14 +238,15 @@
       "domain": "segment",
       "text": "両方の音が無音のまま既定3秒たったら",
       "execution": "async",
-      "note": "確定した発言が1つ以上たまっているとき。Gemini では最後の発言の文字を最大5秒待つ",
+      "note": "確定した発言が1つ以上たまっているとき。Gemini と Soniox では最後の発言の文字を最大5秒待つ",
       "evidence": [
         {
           "path": "src/segment/segmenter.ts",
           "symbol": "Segmenter",
           "role": "rule"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "pol-force",
