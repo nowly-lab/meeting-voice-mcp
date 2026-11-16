@@ -25,7 +25,7 @@ const MAX_LINE = 1024 * 1024;
 export function startCapture(
   binary: string,
   sources: Side[],
-  on: { event(e: CaptureEvent): void; pcm(side: Side, chunk: Buffer): void },
+  on: { event(e: CaptureEvent): void; pcm(side: Side, chunk: Buffer, atMs: number): void },
 ): Promise<CaptureHandle> {
   return new Promise((resolve, reject) => {
     const child = spawn(binary, ["--capture", sources.join(",")], { stdio: ["pipe", "pipe", "pipe"] });
@@ -53,7 +53,7 @@ export function startCapture(
       try { parsed = LineSchema.safeParse(JSON.parse(line)); } catch { return; }
       if (!parsed.success) return;
       const e = parsed.data;
-      if (e.event === "audio") return on.pcm(e.source, Buffer.from(e.pcm, "base64"));
+      if (e.event === "audio") return on.pcm(e.source, Buffer.from(e.pcm, "base64"), e.timestampMs);
       if (e.event === "error") lastError = e.message;
       if (e.event === "ready") { ready = true; on.event(e); return resolve(handle); }
       on.event(e);
