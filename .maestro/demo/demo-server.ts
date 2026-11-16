@@ -3,20 +3,24 @@
 // (no microphone, no Mac audio, no real voice). It also plays the agent: it starts the recording over
 // /mcp as session "demo" once <out>/ready exists, acks each delivered segment as the plugin would, and
 // stops the recording at the end.
-// Usage: node .maestro/demo/demo-server.ts <dataDir> <out>   → prints the page URL, then waits for <out>/ready
+// Usage: node .maestro/demo/demo-server.ts <dataDir> <out> [parakeet|gemini|soniox]   → prints the page URL, then waits for <out>/ready
+// A cloud engine (gemini, soniox) gets a placeholder API key so the page's 準備 list shows it as usable; the key
+// is never sent anywhere, because speech recognition is replaced here.
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { startServer } from "../../src/server.ts";
 import type { CaptureFn, EngineFactory } from "../../src/meeting/recorder.ts";
 import type { SpeechCallbacks } from "../../src/speech/types.ts";
 
-const [dataDir, out] = process.argv.slice(2) as [string, string];
+const [dataDir, out, engine = "parakeet"] = process.argv.slice(2) as [string, string, string?];
+const KEY_ENV: Record<string, string> = { gemini: "GEMINI_API_KEY", soniox: "SONIOX_API_KEY" };
+const env: Record<string, string> = KEY_ENV[engine] ? { [KEY_ENV[engine]]: "demo-placeholder-not-a-key" } : {};
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 let speech: SpeechCallbacks | null = null;
 let t0 = 0;
 const engines: EngineFactory = async (_k, _s, cb) => { speech = cb; return { write: () => {}, stop: async () => {} }; };
 const capture: CaptureFn = async (sources, on) => { on.event({ event: "ready", sources }); t0 = Date.now(); return { stop: async () => {}, exited: () => true }; };
-const s = await startServer({ dataDir, env: {}, capture, engines, openUrl: () => {} });
+const s = await startServer({ dataDir, env, capture, engines, openUrl: () => {} });
 console.log(s.url);
 
 const now = () => Date.now() - t0;
@@ -38,8 +42,8 @@ async function deliverOne() {
 }
 
 while (!existsSync(join(out, "ready"))) await sleep(200);
-await sleep(11_000);
-await tool("start_recording", { title: "注文フローの整理", instructions: "届いた区切りから event-storming-mcp の全体像を直す" });
+await sleep(14_000); // the idle page (準備) stays on screen a few seconds into the take
+await tool("start_recording", { title: "注文フローの整理", engine, instructions: "届いた区切りから event-storming-mcp の全体像を直す" });
 await sleep(1500);
 await say("mic", "注文が確定したら、在庫を引き当てます。", 2200);
 await say("system", "在庫が足りないときは、注文を保留にしましょう。", 2600);
