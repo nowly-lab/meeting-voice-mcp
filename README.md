@@ -1,3 +1,13 @@
+> [!IMPORTANT]
+> **Moved to [nowly-lab/mcp](https://github.com/nowly-lab/mcp/tree/main/packages/meeting-voice-mcp)** (2026-11-17), with its full history. This repository is archived and no longer updated.
+>
+> ```sh
+> npx -y -p github:nowly-lab/mcp meeting-voice-mcp …
+> ```
+
+> The Claude Code plugin moved too: `/plugin marketplace add nowly-lab/mcp`, then `/plugin install meeting-voice@nowly-lab-mcp`.
+
+
 # meeting-voice-mcp
 
 Record a meeting on your Mac, transcribe it, and hand each part of the conversation to Claude while the meeting goes on.
