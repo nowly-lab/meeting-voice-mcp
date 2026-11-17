@@ -1,6 +1,6 @@
 {
   "name": "meeting-voice-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Record meeting mic and Mac audio, transcribe on the Mac, with Gemini Live or with Soniox, and deliver silence-separated segments to the Claude Code session that started recording.",
   "license": "MIT",
   "type": "module",
