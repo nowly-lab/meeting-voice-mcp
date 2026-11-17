@@ -18,6 +18,7 @@ import { createGeminiLive, DEFAULT_GEMINI_MODEL } from "./speech/gemini-live.ts"
 import { createSoniox, DEFAULT_SONIOX_MODEL } from "./speech/soniox.ts";
 import { ensureParakeetModel, modelReady, parakeetDir, SILERO_DIRECTORY, SILERO_FILES } from "./speech/model.ts";
 import { createParakeet } from "./speech/parakeet.ts";
+import { defaultEngine } from "./meeting/engine-choice.ts";
 import { MeetingStore } from "./store/store.ts";
 import { VERSION } from "./version.ts";
 
@@ -193,6 +194,7 @@ async function startLockedServer(opts: ServerOptions, releaseLock: () => void): 
     bridge,
     capture: opts.capture ?? defaultCapture(opts.dataDir),
     engines: opts.engines ?? defaultEngines(opts.dataDir, env, progress),
+    defaultEngine: () => defaultEngine(env),
     clock: Date.now,
     events: broadcast,
   });

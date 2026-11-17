@@ -84,7 +84,7 @@
     },
     {
       "term": "エンジン",
-      "meaning": "文字起こしの方式。parakeet(Mac の中だけ、既定)、gemini(Gemini Live)、soniox(Soniox のリアルタイム API)。",
+      "meaning": "文字起こしの方式。soniox(Soniox のリアルタイム API。SONIOX_API_KEY があるときの既定)、parakeet(Mac の中だけ。鍵がないときの既定)、gemini(Gemini Live)。",
       "code": [
         "engine"
       ],
@@ -129,8 +129,7 @@
           "symbol": "audioGaps",
           "role": "persistence"
         }
-      ],
-      "changed": true
+      ]
     }
   ]
 }

@@ -68,7 +68,7 @@ If Claude is still working when a segment closes, the segment is added to the ru
 
 | Tool | What it does |
 | --- | --- |
-| `start_recording` | `title`, `instructions`, `engine` (`parakeet` \| `gemini` \| `soniox`), `language` (`ja`), `sources` (`["mic","system"]`), `silence_seconds` (1–30, default 3). Refused while another meeting is recording. |
+| `start_recording` | `title`, `instructions`, `engine` (`soniox` \| `parakeet` \| `gemini`; omitted: `soniox` when `SONIOX_API_KEY` is set, otherwise `parakeet`, and the result's `engineNote` says why), `language` (`ja`), `sources` (`["mic","system"]`), `silence_seconds` (1–30, default 3). Refused while another meeting is recording. |
 | `stop_recording` | Stops; open speech becomes the last segment; audio is compressed to AAC. Returns a short summary (counts only); read the content with `get_meeting` or `get_transcript` |
 | `recording_status` | Meeting, elapsed time, sources (`ok`/`denied`/`off`), waiting segments and their target |
 | `get_new_utterances` | Utterances after `after_seq` (for agents without the plugin) |

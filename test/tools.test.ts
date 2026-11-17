@@ -9,11 +9,11 @@ import { Recorder } from "../src/meeting/recorder.ts";
 import { callTool, type ToolContext } from "../src/mcp/tools.ts";
 import { fakeHardware } from "./helpers/fakes.ts";
 
-function ctx(session: string | null = null) {
+function ctx(session: string | null = null, defaultEngine?: () => { engine: "parakeet" | "gemini" | "soniox"; note: string | null }) {
   const hw = fakeHardware();
   const store = new MeetingStore(mkdtempSync(join(tmpdir(), "mv-tools-")));
   const bridge = new DeliveryBridge(store);
-  const recorder = new Recorder({ store, bridge, capture: hw.capture, engines: hw.engines, clock: Date.now, events: () => {}, compress: async () => {}, tickMs: 0 });
+  const recorder = new Recorder({ store, bridge, capture: hw.capture, engines: hw.engines, defaultEngine, clock: Date.now, events: () => {}, compress: async () => {}, tickMs: 0 });
   const c: ToolContext = { recorder, store, bridge, session, pageUrl: (id) => `http://x/${id ?? ""}`, openUrl: () => {} };
   return { c, hw, store, bridge };
 }
@@ -84,4 +84,12 @@ test("stop_recording returns only a summary", async () => {
   assert.equal(r.meeting.segments, 1);
   assert.deepEqual(r.meeting.audioGaps, { count: 0, totalMs: 0 });
   assert.match(r.page, /^http:\/\/x\//);
+});
+
+test("start_recording reports the engine fallback", async () => {
+  const { c } = ctx("A", () => ({ engine: "parakeet", note: "SONIOX_API_KEY がないので Parakeet で始めました" }));
+  const r = body(await callTool(c, "start_recording", {}));
+  assert.equal(r.meeting.engine, "parakeet");
+  assert.match(r.engineNote, /SONIOX_API_KEY がないので Parakeet/);
+  await c.recorder.stop();
 });

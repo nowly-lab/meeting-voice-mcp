@@ -42,8 +42,7 @@
           "symbol": "main",
           "role": "entry"
         }
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "capture",
@@ -92,8 +91,7 @@
           "symbol": "createSoniox",
           "role": "source"
         }
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "plugin",
