@@ -76,6 +76,8 @@ ul.plain { margin: 0; padding-left: 18px; }
 
 .zoomable { position: relative; min-width: 0; }
 .zoom-view { overflow: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; max-height: 80vh; }
+.zoom-view { cursor: grab; }
+.zoom-view.panning, .zoom-view.panning * { cursor: grabbing !important; user-select: none; }
 .zoom-view:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
 .zoom-content { width: max-content; }
 .zoom-ctrl { position: absolute; top: 8px; right: 8px; z-index: 25; display: flex; align-items: center; gap: 2px; padding: 3px;
@@ -107,7 +109,7 @@ ul.plain { margin: 0; padding-left: 18px; }
 <section class="card lc is-changed" id="lc-meeting-life"><h2>会議<span class="new">変更</span></h2><div class="meta">ドメイン: 録音</div><p class="lede">録音中の会議は1台に1つ。止めたら音声を圧縮して残す。</p>
 <h3>状態遷移図</h3><div class="zoomable" data-fit="width">
 <div class="zoom-ctrl" role="toolbar" aria-label="拡大縮小"><button type="button" data-z="out" aria-label="縮小">−</button><output aria-live="polite">100%</output><button type="button" data-z="in" aria-label="拡大">＋</button><button type="button" data-z="fit">全体</button><button type="button" data-z="one">等倍</button></div>
-<div class="zoom-view diagram" tabindex="0" aria-label="ピンチまたは Ctrl/⌘ + ホイールで拡大縮小"><div class="zoom-content"><svg class="graph" viewBox="0 0 858 164" width="858" height="164" role="img" aria-label="会議"><defs><marker id="gh-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" class="headfill"/></marker></defs><polyline class="gedge is-changed" points="71.4,92 71.4,82 90.6,82 90.6,92" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="28" y="60" width="106" height="18" rx="3"/><text class="glabel" x="81" y="73" text-anchor="middle">発言を文字にする</text><polyline class="gedge" points="52.2,92 52.2,50 109.8,50 109.8,92" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="34" y="28" width="94" height="18" rx="3"/><text class="glabel" x="81" y="41" text-anchor="middle">区切りを閉じる</text><polyline class="gedge is-changed" points="129,114 356,114" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="204" y="91" width="82" height="18" rx="3"/><text class="glabel" x="245" y="104" text-anchor="middle">録音を止める</text><polyline class="gedge" points="500,114 734,114" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="570" y="91" width="94" height="18" rx="3"/><text class="glabel" x="617" y="104" text-anchor="middle">音声を圧縮する</text><rect class="gbox initial" x="33" y="92" width="96" height="44" rx="8"/><text class="gtext" x="81" y="119" text-anchor="middle">録音中</text><rect class="gbox" x="356" y="92" width="144" height="44" rx="8"/><text class="gtext" x="428" y="119" text-anchor="middle">止めた(圧縮中)</text><rect class="gbox final" x="734" y="92" width="96" height="44" rx="8"/><text class="gtext" x="782" y="119" text-anchor="middle">保存した</text></svg></div></div>
+<div class="zoom-view diagram" tabindex="0" aria-label="ピンチまたは Ctrl/⌘ + ホイールで拡大縮小、ドラッグで移動"><div class="zoom-content"><svg class="graph" viewBox="0 0 858 164" width="858" height="164" role="img" aria-label="会議"><defs><marker id="gh-2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" class="headfill"/></marker></defs><polyline class="gedge is-changed" points="71.4,92 71.4,82 90.6,82 90.6,92" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="28" y="60" width="106" height="18" rx="3"/><text class="glabel" x="81" y="73" text-anchor="middle">発言を文字にする</text><polyline class="gedge" points="52.2,92 52.2,50 109.8,50 109.8,92" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="34" y="28" width="94" height="18" rx="3"/><text class="glabel" x="81" y="41" text-anchor="middle">区切りを閉じる</text><polyline class="gedge is-changed" points="129,114 356,114" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="204" y="91" width="82" height="18" rx="3"/><text class="glabel" x="245" y="104" text-anchor="middle">録音を止める</text><polyline class="gedge" points="500,114 734,114" marker-end="url(#gh-2)"/><rect class="glabel-bg" x="570" y="91" width="94" height="18" rx="3"/><text class="glabel" x="617" y="104" text-anchor="middle">音声を圧縮する</text><rect class="gbox initial" x="33" y="92" width="96" height="44" rx="8"/><text class="gtext" x="81" y="119" text-anchor="middle">録音中</text><rect class="gbox" x="356" y="92" width="144" height="44" rx="8"/><text class="gtext" x="428" y="119" text-anchor="middle">止めた(圧縮中)</text><rect class="gbox final" x="734" y="92" width="96" height="44" rx="8"/><text class="gtext" x="782" y="119" text-anchor="middle">保存した</text></svg></div></div>
 </div>
 <h3>遷移表</h3><div class="scroll"><table><thead><tr><th>遷移前</th><th>コマンド・イベント</th><th>条件</th><th>遷移後</th><th>起きること</th><th>証拠</th></tr></thead><tbody><tr class=" is-changed"><td>録音中</td><td><a class="chip changed" href="big-picture.html#n-cmd-transcribe" style="background:var(--s-command)" title="コマンド">発言を文字にする</a></td><td>—</td><td>録音中</td><td>—</td><td><span class="foot">—</span></td></tr><tr class=""><td>録音中</td><td><a class="chip" href="big-picture.html#n-cmd-seal" style="background:var(--s-command)" title="コマンド">区切りを閉じる</a></td><td>—</td><td>録音中</td><td>—</td><td><span class="foot">—</span></td></tr><tr class=" is-changed"><td>録音中</td><td><a class="chip changed" href="big-picture.html#n-cmd-stop" style="background:var(--s-command)" title="コマンド">録音を止める</a></td><td>—</td><td>止めた(圧縮中)</td><td>開いている区切りを閉じる</td><td><span class="foot">—</span></td></tr><tr class=""><td>止めた(圧縮中)</td><td><a class="chip" href="big-picture.html#n-cmd-compress" style="background:var(--s-command)" title="コマンド">音声を圧縮する</a></td><td>—</td><td>保存した</td><td>—</td><td><span class="foot">—</span></td></tr></tbody></table></div>
 <h3>早見表（状態 × コマンド・イベント）</h3><div class="scroll"><table class="matrix"><thead><tr><th>状態 ＼ コマンド・イベント</th><th><a class="chip changed" href="big-picture.html#n-cmd-transcribe" style="background:var(--s-command)" title="コマンド">発言を文字にする</a></th><th><a class="chip" href="big-picture.html#n-cmd-seal" style="background:var(--s-command)" title="コマンド">区切りを閉じる</a></th><th><a class="chip changed" href="big-picture.html#n-cmd-stop" style="background:var(--s-command)" title="コマンド">録音を止める</a></th><th><a class="chip" href="big-picture.html#n-cmd-compress" style="background:var(--s-command)" title="コマンド">音声を圧縮する</a></th></tr></thead><tbody><tr><th scope="row" class="">録音中</th><td class="m-ok is-changed" title="">→ 録音中</td><td class="m-ok" title="">→ 録音中</td><td class="m-ok is-changed" title="">→ 止めた(圧縮中)</td><td class="m-bad" title="録音中は圧縮しない">無効<small>録音中は圧縮しない</small></td></tr><tr><th scope="row" class="">止めた(圧縮中)</th><td class="m-skip is-changed" title="止めた後に届いた文字起こしは、止める前の発言なら足す">無視<small>止めた後に届いた文字起こしは、止める前の発言なら足す</small></td><td class="m-skip" title="止めるときに閉じ終えている">無視<small>止めるときに閉じ終えている</small></td><td class="m-skip is-changed" title="もう止めた">無視<small>もう止めた</small></td><td class="m-ok" title="">→ 保存した</td></tr><tr><th scope="row" class="">保存した</th><td class="m-bad is-changed" title="保存した会議は変わらない">無効<small>保存した会議は変わらない</small></td><td class="m-bad" title="保存した会議は変わらない">無効<small>保存した会議は変わらない</small></td><td class="m-skip is-changed" title="もう止めた">無視<small>もう止めた</small></td><td class="m-skip" title="もう圧縮した">無視<small>もう圧縮した</small></td></tr></tbody></table></div>
@@ -116,7 +118,7 @@ ul.plain { margin: 0; padding-left: 18px; }
 <section class="card lc" id="lc-segment-life"><h2>区切り</h2><div class="meta">ドメイン: 届ける</div><p class="lede">区切りは一度だけ受け取られ、届いたら二度と届けない。</p>
 <h3>状態遷移図</h3><div class="zoomable" data-fit="width">
 <div class="zoom-ctrl" role="toolbar" aria-label="拡大縮小"><button type="button" data-z="out" aria-label="縮小">−</button><output aria-live="polite">100%</output><button type="button" data-z="in" aria-label="拡大">＋</button><button type="button" data-z="fit">全体</button><button type="button" data-z="one">等倍</button></div>
-<div class="zoom-view diagram" tabindex="0" aria-label="ピンチまたは Ctrl/⌘ + ホイールで拡大縮小"><div class="zoom-content"><svg class="graph" viewBox="0 0 581 193" width="581" height="193" role="img" aria-label="区切り"><defs><marker id="gh-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" class="headfill"/></marker></defs><polyline class="gedge" points="394,65.7 334,65.7 334,85 174,85 174,62 154,62" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="227" y="62" width="94" height="18" rx="3"/><text class="glabel" x="274" y="75" text-anchor="middle">区切りを届ける</text><polyline class="gedge" points="154,73 164,73 164,142.3 394,142.3" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="224" y="119.3" width="100" height="18" rx="3"/><text class="glabel" x="274" y="132.3" text-anchor="middle">Claudeに届けた</text><polyline class="gedge" points="154,51 394,51" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="227" y="28" width="94" height="18" rx="3"/><text class="glabel" x="274" y="41" text-anchor="middle">受け取りを外す</text><rect class="gbox initial" x="394" y="36.3" width="159" height="44" rx="8"/><text class="gtext" x="473.5" y="63.3" text-anchor="middle">閉じた(届け待ち)</text><rect class="gbox" x="28" y="40" width="126" height="44" rx="8"/><text class="gtext" x="91" y="67" text-anchor="middle">受け取られた</text><rect class="gbox final" x="394" y="120.3" width="96" height="44" rx="8"/><text class="gtext" x="442" y="147.3" text-anchor="middle">届いた</text></svg></div></div>
+<div class="zoom-view diagram" tabindex="0" aria-label="ピンチまたは Ctrl/⌘ + ホイールで拡大縮小、ドラッグで移動"><div class="zoom-content"><svg class="graph" viewBox="0 0 581 193" width="581" height="193" role="img" aria-label="区切り"><defs><marker id="gh-3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 1L10 5L0 9z" class="headfill"/></marker></defs><polyline class="gedge" points="394,65.7 334,65.7 334,85 174,85 174,62 154,62" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="227" y="62" width="94" height="18" rx="3"/><text class="glabel" x="274" y="75" text-anchor="middle">区切りを届ける</text><polyline class="gedge" points="154,73 164,73 164,142.3 394,142.3" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="224" y="119.3" width="100" height="18" rx="3"/><text class="glabel" x="274" y="132.3" text-anchor="middle">Claudeに届けた</text><polyline class="gedge" points="154,51 394,51" marker-end="url(#gh-3)"/><rect class="glabel-bg" x="227" y="28" width="94" height="18" rx="3"/><text class="glabel" x="274" y="41" text-anchor="middle">受け取りを外す</text><rect class="gbox initial" x="394" y="36.3" width="159" height="44" rx="8"/><text class="gtext" x="473.5" y="63.3" text-anchor="middle">閉じた(届け待ち)</text><rect class="gbox" x="28" y="40" width="126" height="44" rx="8"/><text class="gtext" x="91" y="67" text-anchor="middle">受け取られた</text><rect class="gbox final" x="394" y="120.3" width="96" height="44" rx="8"/><text class="gtext" x="442" y="147.3" text-anchor="middle">届いた</text></svg></div></div>
 </div>
 <h3>遷移表</h3><div class="scroll"><table><thead><tr><th>遷移前</th><th>コマンド・イベント</th><th>条件</th><th>遷移後</th><th>起きること</th><th>証拠</th></tr></thead><tbody><tr class=""><td>閉じた(届け待ち)</td><td><a class="chip" href="big-picture.html#n-cmd-deliver" style="background:var(--s-command)" title="コマンド">区切りを届ける</a></td><td>届け先のセッションのプラグイン</td><td>受け取られた</td><td>—</td><td><span class="foot">—</span></td></tr><tr class=""><td>受け取られた</td><td><a class="chip" href="big-picture.html#n-ev-delivered" style="background:var(--s-event)" title="イベント">Claudeに届けた</a></td><td>—</td><td>届いた</td><td>—</td><td><span class="foot">—</span></td></tr><tr class=""><td>受け取られた</td><td><a class="chip" href="big-picture.html#n-cmd-release" style="background:var(--s-command)" title="コマンド">受け取りを外す</a></td><td>受け取ってから30秒届かない</td><td>閉じた(届け待ち)</td><td>再送の印をつける</td><td><span class="foot">—</span></td></tr></tbody></table></div>
 <h3>早見表（状態 × コマンド・イベント）</h3><div class="scroll"><table class="matrix"><thead><tr><th>状態 ＼ コマンド・イベント</th><th><a class="chip" href="big-picture.html#n-cmd-deliver" style="background:var(--s-command)" title="コマンド">区切りを届ける</a></th><th><a class="chip" href="big-picture.html#n-ev-delivered" style="background:var(--s-event)" title="イベント">Claudeに届けた</a></th><th><a class="chip" href="big-picture.html#n-cmd-release" style="background:var(--s-command)" title="コマンド">受け取りを外す</a></th></tr></thead><tbody><tr><th scope="row" class="">閉じた(届け待ち)</th><td class="m-ok" title="届け先のセッションのプラグイン">→ 受け取られた<small>（条件あり）</small></td><td class="m-bad" title="受け取らずに届いたことにはできない">無効<small>受け取らずに届いたことにはできない</small></td><td class="m-skip" title="受け取られていない">無視<small>受け取られていない</small></td></tr><tr><th scope="row" class="">受け取られた</th><td class="m-bad" title="別の受け取りが進んでいる">無効<small>別の受け取りが進んでいる</small></td><td class="m-ok" title="">→ 届いた</td><td class="m-ok" title="受け取ってから30秒届かない">→ 閉じた(届け待ち)<small>（条件あり）</small></td></tr><tr><th scope="row" class="">届いた</th><td class="m-bad" title="もう届いた">無効<small>もう届いた</small></td><td class="m-skip" title="二度目の届いた知らせは無視する">無視<small>二度目の届いた知らせは無視する</small></td><td class="m-skip" title="もう届いた">無視<small>もう届いた</small></td></tr></tbody></table></div>
@@ -126,7 +128,18 @@ ul.plain { margin: 0; padding-left: 18px; }
 <script>document.getElementById('show-changed').addEventListener('change', function (e) { document.getElementById('main').classList.toggle('show-changed', e.target.checked); });</script>
 
 <script>(function(){
-var MIN = 0.1, MAX = 4;
+var MIN = 0.1, MAX = 4, PAN_THRESHOLD = 4;
+function canStartPan(e) {
+  if (e.button !== 0 || e.pointerType === 'touch') return false;
+  var t = e.target;
+  if (!t || typeof t.closest !== 'function') return false;
+  return !t.closest('.note, .zoom-ctrl, a, button, input, textarea, select, [contenteditable], [data-no-pan]');
+}
+function panStep(start, x, y, moving, threshold) {
+  var dx = x - start.x, dy = y - start.y;
+  if (!moving && Math.hypot(dx, dy) <= threshold) return { moving: false, left: start.left, top: start.top };
+  return { moving: true, left: start.left - dx, top: start.top - dy };
+}
 document.querySelectorAll('.zoomable').forEach(function (box) {
   var view = box.querySelector('.zoom-view'), content = box.querySelector('.zoom-content'), out = box.querySelector('output');
   var s = 1, w = content.offsetWidth, h = content.offsetHeight;
@@ -182,6 +195,47 @@ document.querySelectorAll('.zoomable').forEach(function (box) {
   }, { passive: false });
   view.addEventListener('touchend', function (e) { if (e.touches.length < 2) { t = null; touching = false; } });
   view.addEventListener('touchcancel', function () { t = null; touching = false; });
+  // Mouse or pen drag on empty canvas pans. Moves are followed on the whole page (the pointer may leave the
+  // box before it travels far enough), and pointer capture starts only once the press has moved, so a
+  // plain click still reaches what is under it; the click that ends a pan is dropped.
+  var p = null;
+  function movePan(e) {
+    if (!p || e.pointerId !== p.id) return;
+    // Released outside the page before the pan began: no pointerup came, so end it here.
+    if (e.pointerType === 'mouse' && !(e.buttons & 1)) return endPan(e);
+    var n = panStep(p.start, e.clientX, e.clientY, p.moving, PAN_THRESHOLD);
+    if (n.moving && !p.moving) {
+      p.moving = true; view.classList.add('panning'); view.setPointerCapture(e.pointerId);
+      var sel = document.getSelection(); if (sel) sel.removeAllRanges();
+    }
+    if (p.moving) { view.scrollLeft = n.left; view.scrollTop = n.top; }
+  }
+  function endPan(e) {
+    if (!p || e.pointerId !== p.id) return;
+    document.removeEventListener('pointermove', movePan);
+    document.removeEventListener('pointerup', endPan);
+    document.removeEventListener('pointercancel', endPan);
+    if (p.moving) {
+      view.classList.remove('panning');
+      if (view.hasPointerCapture(e.pointerId)) view.releasePointerCapture(e.pointerId);
+      // The click comes in the same task as pointerup, so the guard is dropped right after it; a later
+      // click (from the keyboard, or after a release outside the page that fired none) is never eaten.
+      var drop = function () { document.removeEventListener('click', swallow, true); };
+      var swallow = function (c) { c.stopPropagation(); c.preventDefault(); drop(); };
+      document.addEventListener('click', swallow, true);
+      setTimeout(drop, 0);
+    }
+    p = null;
+  }
+  view.addEventListener('pointerdown', function (e) {
+    if (p || !canStartPan(e)) return;
+    p = { id: e.pointerId, moving: false, start: { x: e.clientX, y: e.clientY, left: view.scrollLeft, top: view.scrollTop } };
+    document.addEventListener('pointermove', movePan);
+    document.addEventListener('pointerup', endPan);
+    document.addEventListener('pointercancel', endPan);
+  });
+  // No text selection while a press on the canvas may become a pan.
+  view.addEventListener('selectstart', function (e) { if (p) e.preventDefault(); });
   // Start: fit the width (never above 100%) for wide boards; otherwise 100%.
   var fit = box.dataset.fit;
   set(fit === 'width' ? Math.min(1, view.clientWidth / w) : fit === 'all' ? Math.min(1, fitAll()) : 1);
