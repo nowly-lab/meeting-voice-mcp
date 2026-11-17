@@ -9,13 +9,15 @@ import { Recorder, type EngineFactory } from "../src/meeting/recorder.ts";
 import type { CaptureEvent } from "../src/capture/helper.ts";
 import type { SpeechCallbacks } from "../src/speech/types.ts";
 
-function setup(opts: { denySystem?: boolean; failEngine?: string } = {}) {
+function setup(opts: { denySystem?: boolean; failEngine?: string; defaultEngine?: () => { engine: "parakeet" | "gemini" | "soniox"; note: string | null } } = {}) {
   let now = 0;
   const store = new MeetingStore(mkdtempSync(join(tmpdir(), "mv-rec-")));
   const bridge = new DeliveryBridge(store, () => now);
   let cb: SpeechCallbacks | null = null;
   let onCapture: { event(e: CaptureEvent): void; pcm(side: Side, b: Buffer, atMs: number): void } | null = null;
+  const kinds: string[] = [];
   const engines: EngineFactory = async (kind, _sides, c) => {
+    kinds.push(kind);
     if (opts.failEngine) throw Error(opts.failEngine);
     cb = c;
     return { write: () => {}, stop: async () => {} };
@@ -27,8 +29,8 @@ function setup(opts: { denySystem?: boolean; failEngine?: string } = {}) {
     return { stop: async () => {}, exited: () => true };
   };
   const compressed: string[] = [];
-  const recorder = new Recorder({ store, bridge, capture, engines, clock: () => now, events: () => {}, compress: async (wav) => { compressed.push(wav); }, tickMs: 0 });
-  return { store, bridge, recorder, cb: () => cb!, pcm: (side: Side, atMs: number) => onCapture!.pcm(side, Buffer.alloc(3200), atMs), compressed, at: (t: number) => { now = t; recorder.tick(); } };
+  const recorder = new Recorder({ store, bridge, capture, engines, defaultEngine: opts.defaultEngine, clock: () => now, events: () => {}, compress: async (wav) => { compressed.push(wav); }, tickMs: 0 });
+  return { kinds, store, bridge, recorder, cb: () => cb!, pcm: (side: Side, atMs: number) => onCapture!.pcm(side, Buffer.alloc(3200), atMs), compressed, at: (t: number) => { now = t; recorder.tick(); } };
 }
 
 test("start → utterance → 3 s silence → one segment queued for the session", async () => {
@@ -257,4 +259,25 @@ test("soniox waits for a pending transcript before sealing, like gemini", async 
   s.cb().text({ side: "mic", text: "注文が確定したら", startMs: 0, endMs: 1000 });
   s.at(4100);
   assert.equal(s.bridge.pending(m.id).count, 1);
+});
+
+test("start without engine uses the default engine and reports why", async () => {
+  const s = setup({ defaultEngine: () => ({ engine: "soniox", note: null }) });
+  const m = await s.recorder.start({ agentSession: "A" });
+  assert.deepEqual(s.kinds, ["soniox"]);
+  assert.equal(s.store.readMeta(m.id).engine, "soniox");
+  assert.equal(m.engineNote, null);
+  await s.recorder.stop();
+  const f = setup({ defaultEngine: () => ({ engine: "parakeet", note: "SONIOX_API_KEY がないので Parakeet で始めました" }) });
+  const m2 = await f.recorder.start({ agentSession: "A" });
+  assert.equal(f.store.readMeta(m2.id).engine, "parakeet");
+  assert.match(m2.engineNote ?? "", /Parakeet/);
+  assert.equal("engineNote" in f.store.readMeta(m2.id), false, "the note is not saved with the meeting");
+});
+
+test("an explicit engine never uses the default", async () => {
+  const s = setup({ defaultEngine: () => ({ engine: "soniox", note: null }) });
+  const m = await s.recorder.start({ engine: "parakeet", agentSession: "A" });
+  assert.deepEqual(s.kinds, ["parakeet"]);
+  assert.equal(m.engineNote, null);
 });

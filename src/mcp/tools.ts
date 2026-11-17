@@ -34,7 +34,7 @@ export const TOOL_NAMES = Object.keys(TOOL_SCHEMAS) as ToolName[];
 
 const DESCRIPTIONS: Record<ToolName, string> = {
   start_recording:
-    "Start recording the meeting (microphone = 自分側, Mac audio = 相手側) and transcribing it. After a few seconds of silence the utterances so far are sent as one segment to the Claude Code session that started recording (through the meeting-voice plugin). `instructions` says what to do with each segment, e.g. update an event-storming board; it is attached to every segment. Refused while another meeting is recording.",
+    "Start recording the meeting (microphone = 自分側, Mac audio = 相手側) and transcribing it. After a few seconds of silence the utterances so far are sent as one segment to the Claude Code session that started recording (through the meeting-voice plugin). `instructions` says what to do with each segment, e.g. update an event-storming board; it is attached to every segment. Without `engine`, Soniox is used when SONIOX_API_KEY is set, otherwise Parakeet (the result then says why in `engineNote`). Refused while another meeting is recording.",
   stop_recording: "Stop the current recording. Open utterances become a last segment; the audio is compressed and kept in the history. Returns a short summary (counts only); read the content with get_meeting or get_transcript.",
   recording_status: "Current recording: meeting, elapsed time, engine, source states (ok/denied/off), waiting segments and their delivery target.",
   get_new_utterances:
@@ -106,8 +106,10 @@ export async function callTool(ctx: ToolContext, name: string, rawArgs: unknown)
           title: a.title, instructions: a.instructions, engine: a.engine, language: a.language, sources: a.sources,
           silenceSeconds: a.silence_seconds, agentSession: ctx.session,
         });
+        const { engineNote, ...meeting } = meta;
         return data({
-          meeting: meta,
+          meeting,
+          ...(engineNote ? { engineNote } : {}),
           page: ctx.pageUrl(meta.id),
           delivery: ctx.session
             ? "Segments arrive in this session as new messages after each pause. End your turn and wait for them."

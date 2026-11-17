@@ -89,6 +89,8 @@ export class Recorder {
     bridge: DeliveryBridge;
     capture: CaptureFn;
     engines: EngineFactory;
+    /** The engine when start names none (Soniox with a key, else Parakeet, with the reason); Parakeet when absent. */
+    defaultEngine?: () => { engine: EngineKind; note: string | null };
     clock: () => number;
     events: (e: LiveEvent) => void;
     compress?: (wav: string, m4a: string) => Promise<void>;
@@ -104,7 +106,7 @@ export class Recorder {
     this.deps = deps;
   }
 
-  async start(input: StartInput): Promise<MeetingMeta> {
+  async start(input: StartInput): Promise<MeetingMeta & { engineNote: string | null }> {
     if (this.active || this.starting) {
       const m = this.active?.meta;
       throw Error(m ? `録音中の会議があります: ${m.title} (${m.id})` : "録音を始めているところです");
@@ -112,7 +114,8 @@ export class Recorder {
     this.starting = true;
     try {
       const { store, clock } = this.deps;
-      const engineKind = input.engine ?? "parakeet";
+      const chosen = input.engine ? { engine: input.engine, note: null } : (this.deps.defaultEngine?.() ?? { engine: "parakeet" as const, note: null });
+      const engineKind = chosen.engine;
       const sources = input.sources ?? ["mic", "system"];
       const silenceSeconds = input.silenceSeconds ?? 3;
       let ref: Active | null = null;
@@ -184,7 +187,7 @@ export class Recorder {
       const tickMs = this.deps.tickMs ?? 250;
       if (tickMs > 0) this.timer = setInterval(() => this.tick(), tickMs);
       this.emitStatus();
-      return meta;
+      return { ...meta, engineNote: chosen.note };
     } finally {
       this.starting = false;
     }

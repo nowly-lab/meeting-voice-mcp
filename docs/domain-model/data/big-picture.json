@@ -41,7 +41,7 @@
       "type": "command",
       "domain": "recording",
       "text": "録音を始める",
-      "note": "MCP start_recording(title, instructions, engine, sources, silence_seconds)。プラグイン経由ならセッション ID がつく",
+      "note": "MCP start_recording(title, instructions, engine, sources, silence_seconds)。engine を省くと、SONIOX_API_KEY があれば soniox、なければ parakeet（結果にその旨を書く）。プラグイン経由ならセッション ID がつく",
       "evidence": [
         {
           "path": "src/mcp/tools.ts",
@@ -53,7 +53,8 @@
           "symbol": "meeting_voice",
           "role": "entry"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "ext-capture",
@@ -97,7 +98,8 @@
         "録音中の会議は1台に1つ(録音中に始めようとしたら、録音中の会議を示して断る)",
         "発言の通し番号は会議の中で増えるだけ",
         "Mac の音の許可がなくてもマイクだけで続ける",
-        "発言は書いた順に utterances.jsonl へ追記し、書き換えない"
+        "発言は書いた順に utterances.jsonl へ追記し、書き換えない",
+        "エンジンを指定しない録音は、SONIOX_API_KEY があれば Soniox、なければ Parakeet で始め、Parakeet にした理由を開始の結果に書く"
       ],
       "evidence": [
         {
@@ -109,8 +111,14 @@
           "path": "src/store/store.ts",
           "symbol": "MeetingStore",
           "role": "persistence"
+        },
+        {
+          "path": "src/meeting/engine-choice.ts",
+          "symbol": "defaultEngine",
+          "role": "rule"
         }
-      ]
+      ],
+      "changed": true
     },
     {
       "id": "ev-started",
@@ -124,8 +132,7 @@
       "domain": "recording",
       "text": "発言が無音で切れたら",
       "execution": "async",
-      "note": "Silero VAD(0.4 秒の無音)。Gemini では Live の文字起こしが届いたとき。Soniox では <end>(発言の終わり)が届いたとき",
-      "changed": true
+      "note": "Silero VAD(0.4 秒の無音)。Gemini では Live の文字起こしが届いたとき。Soniox では <end>(発言の終わり)が届いたとき"
     },
     {
       "id": "cmd-transcribe",
@@ -148,8 +155,7 @@
           "symbol": "createSoniox",
           "role": "source"
         }
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "ext-gemini",
@@ -177,7 +183,6 @@
       "type": "external",
       "domain": "recording",
       "text": "Soniox",
-      "changed": true,
       "attach": {
         "to": "cmd-transcribe",
         "pos": "above-right"
@@ -196,7 +201,6 @@
       "type": "hotspot",
       "domain": "recording",
       "text": "本物の Soniox での日本語の精度と <end> の遅れ(既定 最大 2 秒)は、鍵を設定してから実機で確かめる",
-      "changed": true,
       "attach": {
         "to": "cmd-transcribe",
         "pos": "below-right"
@@ -223,8 +227,7 @@
           "symbol": "recordGap",
           "role": "rule"
         }
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "ev-utterance",
@@ -245,8 +248,7 @@
           "symbol": "Segmenter",
           "role": "rule"
         }
-      ],
-      "changed": true
+      ]
     },
     {
       "id": "pol-force",
@@ -516,7 +518,6 @@
           "role": "entry"
         }
       ],
-      "changed": true,
       "note": "stop_recording は会議の要約(題名・時刻・エンジン・区切りと発言の数・音声の欠けの件数と合計)だけを返す。区切りは録音中に届いているので中身は返さない"
     },
     {
