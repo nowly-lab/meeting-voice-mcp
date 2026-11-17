@@ -10,7 +10,7 @@ import { Segmenter, sealSegment, type SealedSegment } from "../segment/segmenter
 import type { SpeechCallbacks, SpeechEngine } from "../speech/types.ts";
 import type { MeetingMeta, MeetingStore, Side, Utterance } from "../store/store.ts";
 
-export type EngineKind = "parakeet" | "gemini";
+export type EngineKind = "parakeet" | "gemini" | "soniox";
 export type EngineFactory = (kind: EngineKind, sides: Side[], cb: SpeechCallbacks, language: string) => Promise<SpeechEngine>;
 export type CaptureFn = (sources: Side[], on: { event(e: CaptureEvent): void; pcm(side: Side, chunk: Buffer, atMs: number): void }) => Promise<CaptureHandle>;
 export type SourceState = "ok" | "denied" | "off";
@@ -46,7 +46,10 @@ const FORCE_MS = 60_000;
 const BYTES_PER_MS = 32; // 16 kHz, 16-bit mono
 const IDLE_FEED_AFTER_MS = 300; // a side silent this long (no PCM at all) is fed silence
 const MAX_PAD_MS = 30 * 60_000;
-const GEMINI_WAIT_MS = 5_000;
+/** Cloud engines send the text after the voice ends; the segmenter waits for it this long. */
+const TRANSCRIPT_WAIT_MS = 5_000;
+/** A chunk that starts less than this before the cursor is capture clock jitter, not lost audio. */
+const GAP_JITTER_MS = 20;
 
 function rms(pcm: Buffer) {
   let sum = 0;
@@ -139,7 +142,7 @@ export class Recorder {
         engine,
         capture: null,
         segmenter: new Segmenter(
-          { silenceMs: silenceSeconds * 1000, forceMs: FORCE_MS, transcriptWaitMs: engineKind === "gemini" ? GEMINI_WAIT_MS : 0 },
+          { silenceMs: silenceSeconds * 1000, forceMs: FORCE_MS, transcriptWaitMs: engineKind === "parakeet" ? 0 : TRANSCRIPT_WAIT_MS },
           (s) => this.onSeal(meta.id, s),
         ),
         wav: {},
@@ -221,7 +224,7 @@ export class Recorder {
       // Real audio that idle silence already covered: it cannot be kept on the timeline, so it is recorded as lost.
       const skipBytes = Math.round((cursor - at) * BYTES_PER_MS / 2) * 2;
       const lostTo = Math.min(cursor, at + chunk.length / BYTES_PER_MS);
-      this.recordGap(a, { side, fromMs: Math.round(at), toMs: Math.round(lostTo) });
+      if (cursor - at >= GAP_JITTER_MS) this.recordGap(a, { side, fromMs: Math.round(at), toMs: Math.round(lostTo) });
       if (skipBytes >= data.length) return;
       data = data.subarray(skipBytes);
       at = cursor;
@@ -258,6 +261,7 @@ export class Recorder {
   }
 
   private recordGap(a: Active, gap: AudioGap) {
+    if (gap.toMs <= gap.fromMs) return;
     const last = a.gaps.at(-1);
     if (last && last.side === gap.side && gap.fromMs <= last.toMs) last.toMs = Math.max(last.toMs, gap.toMs);
     else if (a.gaps.length < 1000) a.gaps.push(gap);

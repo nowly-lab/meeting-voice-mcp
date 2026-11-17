@@ -1,4 +1,4 @@
-import { audioUrl, el, type MeetingDetail, type MeetingMeta, type Utterance } from "./api.ts";
+import { audioUrl, el, engineLabel, type MeetingDetail, type MeetingMeta, type Utterance } from "./api.ts";
 import { segmentBlocks } from "./segments.ts";
 
 function minutes(m: MeetingMeta) {
@@ -11,7 +11,7 @@ export function renderHistory(root: HTMLElement, list: MeetingMeta[], selected: 
   search.addEventListener("input", () => opts.onSearch(search.value));
   const items = list.map((m) => el("a", { class: `item${m.id === selected?.meta.id ? " sel" : ""}`, href: `#history=${m.id}`, "data-id": m.id },
     el("div", { class: "t" }, m.title),
-    el("div", { class: "s" }, `${new Date(m.startedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} · ${minutes(m)} · ${m.engine === "gemini" ? "Gemini" : "Parakeet"}`),
+    el("div", { class: "s" }, `${new Date(m.startedAt).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} · ${minutes(m)} · ${engineLabel(m.engine)}`),
     m.excerpts?.length ? el("div", { class: "s" }, m.excerpts[0]!) : null));
   const side = el("aside", { class: "side" }, search, ...(items.length ? items : [el("p", { class: "s" }, "会議はまだありません")]));
   const main = el("div", { class: "main" });
@@ -21,7 +21,7 @@ export function renderHistory(root: HTMLElement, list: MeetingMeta[], selected: 
     const d = selected;
     main.append(el("h1", {}, d.meta.title), el("div", { class: "meta" },
       el("span", {}, `${new Date(d.meta.startedAt).toLocaleString("ja-JP", { hour12: false })}${d.meta.endedAt ? `–${new Date(d.meta.endedAt).toLocaleTimeString("ja-JP", { hour12: false })}` : ""}`),
-      el("span", { class: "chip" }, d.meta.engine === "gemini" ? "Gemini" : "Parakeet"), el("span", { class: "chip" }, `${d.segments.length}区切り`),
+      el("span", { class: "chip" }, engineLabel(d.meta.engine)), el("span", { class: "chip" }, `${d.segments.length}区切り`),
       d.meta.interrupted ? el("span", { class: "chip" }, "中断して保存") : null,
       d.meta.audioGaps?.length ? el("span", { class: "chip warn", title: "取り込みが遅れて保存できなかった音声があります" }, `音声の欠け ${(d.meta.audioGaps.reduce((t, g) => t + g.toMs - g.fromMs, 0) / 1000).toFixed(1)}秒`) : null));
     const players: Partial<Record<"mic" | "system", HTMLAudioElement>> = {};

@@ -5,6 +5,7 @@ export function fakeHardware() {
   const state: { cb: SpeechCallbacks | null } = { cb: null };
   const engines: EngineFactory = async (kind, _sides, cb) => {
     if (kind === "gemini") throw Error("GEMINI_API_KEY が設定されていません。");
+    if (kind === "soniox") throw Error("SONIOX_API_KEY が設定されていません。");
     state.cb = cb;
     return { write: () => {}, stop: async () => {} };
   };

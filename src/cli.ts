@@ -72,6 +72,7 @@ export async function doctor(dataDir: string, env: Env, io: IO): Promise<number>
   lines.push([true, "Macの音の許可: 録音を始めたときに macOS が尋ねます（システム設定 > プライバシーとセキュリティ > 画面とシステムオーディオ録音）"]);
   lines.push([modelReady(parakeetDir(dataDir)), `Parakeet モデル: ${modelReady(parakeetDir(dataDir)) ? "ダウンロード済み" : "未ダウンロード（最初の start_recording で約 650 MB を取得）"}`]);
   lines.push([Boolean(env.GEMINI_API_KEY?.trim()), `GEMINI_API_KEY: ${env.GEMINI_API_KEY?.trim() ? "あり（無料枠のキーでは送った音声が Google に使われることがあります）" : "なし（Gemini は使えません。Parakeet は使えます）"}`]);
+  lines.push([Boolean(env.SONIOX_API_KEY?.trim()), `SONIOX_API_KEY: ${env.SONIOX_API_KEY?.trim() ? "あり（engine: \"soniox\" の音声は Soniox に送られます）" : "なし（Soniox は使えません。Parakeet は使えます）"}`]);
   try {
     const { stdout } = await run("claude", ["plugin", "list"], { timeout: 15000 });
     lines.push([/meeting-voice/.test(stdout), `Claude Code プラグイン: ${/meeting-voice/.test(stdout) ? "入っている" : "入っていない（meeting-voice-mcp install-plugin）"}`]);

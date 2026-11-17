@@ -1,0 +1,56 @@
+# The Soniox engine on meeting-voice-mcp's page: the 準備 list has a Soniox row, a meeting recorded with
+# engine "soniox" is labelled Soniox in the live chip and footer, and its history entry is labelled Soniox.
+# demo-server.ts replaces audio capture and speech recognition with fixed lines (no Soniox call, no real key:
+# the server gets a placeholder SONIOX_API_KEY only so the row reads 使える).
+# Local:
+#   D=$(mktemp -d); O=<out folder>
+#   node .maestro/demo/demo-server.ts $D $O soniox &      # prints http://127.0.0.1:<port>
+#   MAESTRO_MV_URL=http://127.0.0.1:<port> python3 <implementation>/scripts/demo-video/demo_take.py web \
+#     .maestro/demo/soniox.yaml $O --points 1440x900 --window-title "meeting-voice-mcp"
+# The demo server stops itself a minute after the recording ends.
+url: ${MAESTRO_MV_URL}
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Claudeから録音を始めるのを待っています"
+    timeout: 30000
+# Wait so OpenScreen starts recording before the first action.
+- extendedWaitUntil:
+    visible: "Never shown text"
+    timeout: 9000
+    optional: true
+- assertVisible:
+    text: "使える（SONIOX_API_KEY）"
+    label: "準備にSonioxの行"
+- extendedWaitUntil:
+    visible: "録音中"
+    timeout: 30000
+- assertVisible:
+    text: "Soniox"
+    label: "Sonioxで録音中"
+- extendedWaitUntil:
+    visible: "音声は Soniox で文字起こしされています"
+    timeout: 10000
+- extendedWaitUntil:
+    visible: ".*引き当てた在庫を戻します.*"
+    timeout: 40000
+    label: "Sonioxの文字起こし"
+- extendedWaitUntil:
+    visible: "Claudeから録音を始めるのを待っています"
+    timeout: 40000
+- tapOn:
+    text: "履歴"
+    label: "履歴にもSoniox"
+- extendedWaitUntil:
+    visible: "区切り 01"
+    timeout: 15000
+- assertVisible:
+    text: ".* · Soniox"
+- assertVisible:
+    text: "Soniox"
+# Hold the last screen briefly before the take ends.
+- extendedWaitUntil:
+    visible: "Never shown text"
+    timeout: 3000
+    optional: true

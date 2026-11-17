@@ -23,7 +23,7 @@ export const MeetingMetaSchema = z.object({
   title: z.string(),
   startedAt: z.string(),
   endedAt: z.string().optional(),
-  engine: z.enum(["parakeet", "gemini"]),
+  engine: z.enum(["parakeet", "gemini", "soniox"]),
   language: z.string(),
   instructions: z.string(),
   agentSession: z.string().nullable(),

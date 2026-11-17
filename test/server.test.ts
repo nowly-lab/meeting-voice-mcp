@@ -4,7 +4,7 @@ import { request } from "node:http";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { startServer } from "../src/server.ts";
+import { defaultEngines, startServer } from "../src/server.ts";
 import { connectRemote } from "../src/mcp/stdio.ts";
 import { fakeHardware } from "./helpers/fakes.ts";
 
@@ -87,6 +87,25 @@ test("gemini without a key: isError naming GEMINI_API_KEY and no meeting", async
   assert.equal(s.store.listMeetings(0, 10).length, 0);
   await c.close();
   await s.close();
+});
+
+test("soniox without a key: isError naming SONIOX_API_KEY and no meeting", async () => {
+  const { s } = await boot();
+  const c = await connectRemote({ port: s.port, pid: process.pid, token: s.token });
+  const r = await c.callTool({ name: "start_recording", arguments: { engine: "soniox" } });
+  assert.equal(r.isError, true);
+  assert.match(JSON.stringify(r.content), /SONIOX_API_KEY/);
+  assert.equal(s.store.listMeetings(0, 10).length, 0);
+  await c.close();
+  await s.close();
+});
+
+test("defaultEngines refuses soniox without SONIOX_API_KEY before downloading anything", async () => {
+  const dataDir = mkdtempSync(join(tmpdir(), "mv-srv-"));
+  const progress = { state: "missing" as const, received: 0, total: 0 };
+  const cb = { voice: () => {}, text: () => {}, pending: () => {}, error: () => {} };
+  await assert.rejects(defaultEngines(dataDir, {}, progress)("soniox", ["mic"], cb, "ja"), /SONIOX_API_KEY/);
+  await assert.rejects(defaultEngines(dataDir, { SONIOX_API_KEY: "  " }, progress)("soniox", ["mic"], cb, "ja"), /SONIOX_API_KEY/);
 });
 
 test("F4: a second server on the same data folder is refused", async () => {

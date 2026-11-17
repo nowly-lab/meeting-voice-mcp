@@ -231,3 +231,30 @@ test("R3-1: contiguous chunks record no gap", async () => {
   await s.recorder.stop();
   assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
 });
+
+test("overlaps under 20 ms are trimmed without an audio gap", async () => {
+  const s = setup2();
+  const m = await s.recorder.start({ agentSession: "A", sources: ["system"] });
+  s.on().pcm("system", tone(100, 1000), 0);
+  s.on().pcm("system", tone(100, 1000), 99.6);   // capture clock jitter, not lost audio
+  s.on().pcm("system", tone(100, 1000), 185);    // 14.6 ms early: still jitter
+  assert.deepEqual(s.recorder.status().audioGaps, []);
+  await s.recorder.stop();
+  assert.equal(s.store.readMeta(m.id).audioGaps, undefined);
+  // The overlapping head of each chunk is trimmed so the timeline stays continuous: 100 + 99.6 + 85.4 ms.
+  assert.equal(Math.round(readFileSync(s.store.audioPath(m.id, "system", "wav")).readUInt32LE(40) / 32), 285);
+});
+
+test("soniox waits for a pending transcript before sealing, like gemini", async () => {
+  const s = setup();
+  const m = await s.recorder.start({ engine: "soniox", agentSession: "A" });
+  assert.equal(s.store.readMeta(m.id).engine, "soniox");
+  s.cb().voice("mic", true, 0);
+  s.cb().voice("mic", false, 1000);
+  s.cb().pending("mic", 1000);
+  s.at(4000);
+  assert.equal(s.bridge.pending(m.id).count, 0, "the <end> and its text are still on the way");
+  s.cb().text({ side: "mic", text: "注文が確定したら", startMs: 0, endMs: 1000 });
+  s.at(4100);
+  assert.equal(s.bridge.pending(m.id).count, 1);
+});

@@ -1,4 +1,4 @@
-import { el, type MeetingDetail, type MeetingMeta, type ServerStatus, type Side } from "./api.ts";
+import { el, engineFoot, engineLabel, type MeetingDetail, type MeetingMeta, type ServerStatus, type Side } from "./api.ts";
 import { segmentBlocks } from "./segments.ts";
 
 export type LiveState = { status: ServerStatus | null; detail: MeetingDetail | null; recent: MeetingMeta[]; talking: Record<Side, boolean> };
@@ -24,6 +24,7 @@ function checks(s: ServerStatus) {
     ["文字起こしモデル", model[0]!, model[1]!],
     ["Claude Codeプラグイン", s.plugin ? "ok" : "ng", s.plugin ? "● 接続中" : "未接続（get_new_utterances で読めます）"],
     ["Gemini", s.gemini ? "ok" : "ng", s.gemini ? "使える（GEMINI_API_KEY）" : "GEMINI_API_KEY なし"],
+    ["Soniox", s.soniox ? "ok" : "ng", s.soniox ? "使える（SONIOX_API_KEY）" : "SONIOX_API_KEY なし"],
   ];
   return el("div", { class: "checks" }, el("h4", {}, "準備"), ...rows.map(([name, cls, text]) => el("div", { class: "check" }, el("span", {}, name), el("span", { class: cls }, text))));
 }
@@ -37,7 +38,7 @@ export function renderLive(root: HTMLElement, state: LiveState): void {
       el("p", {}, "Claude Code で録音を始めると、ここに会話が表示されます。"), s ? checks(s) : el("p", {}, "読み込み中…"), el("p", { class: "foot" }, "録音の開始・停止はClaudeから操作します。")));
   } else {
     const d = state.detail;
-    main.append(el("h1", {}, d.meta.title), el("div", { class: "meta" }, el("span", { class: "rec" }, "録音中"), el("span", {}, elapsed(rec.elapsedMs)), el("span", { class: "chip" }, rec.engine === "gemini" ? "Gemini" : "Parakeet"),
+    main.append(el("h1", {}, d.meta.title), el("div", { class: "meta" }, el("span", { class: "rec" }, "録音中"), el("span", {}, elapsed(rec.elapsedMs)), el("span", { class: "chip" }, rec.engine ? engineLabel(rec.engine) : ""),
       el("span", { class: "chip" }, rec.target ? `Claude Code: ${rec.target.slice(0, 8)}` : "届け先なし")));
     if (rec.sources.system === "denied") {
       main.append(el("div", { class: "banner", role: "alert" }, el("b", {}, "Macの音の許可がありません"),
@@ -58,7 +59,7 @@ export function renderLive(root: HTMLElement, state: LiveState): void {
     main.append(...segmentBlocks(d));
     const talking = (["mic", "system"] as const).filter((x) => state.talking[x]);
     if (talking.length) main.append(el("div", { class: "partial" }, `${talking.map((x) => (x === "mic" ? "自分側" : "相手側")).join("・")}が話しています…`));
-    main.append(el("p", { class: "foot" }, d.meta.engine === "gemini" ? "音声は Gemini で文字起こしされています" : "音声はこのMacで文字起こしされています"));
+    main.append(el("p", { class: "foot" }, engineFoot(d.meta.engine)));
   }
   root.replaceChildren(el("div", { class: "layout" }, sidebar(state), main));
 }
